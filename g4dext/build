@@ -1,0 +1,44 @@
+#! /bin/sh
+#
+
+DATE=`date -u +%Y-%m-%d`
+ASMDATE=`date -u +".long "%Y%m%d`
+CC=${CC:-gcc}
+NOBUILDID=${NOBUILDID:-0}
+
+if [ "$NOBUILDID" = "0" ]; then
+	BUILDID=-Wl,--build-id=none
+else
+	BUILDID=
+fi
+
+if [ ! -d ./tmp ] ; then
+	mkdir ./tmp
+fi
+if [ ! -d ./bin ] ; then
+	mkdir ./bin
+fi
+if [ ! -d ./zip ] ; then
+	mkdir ./zip
+fi
+for file in *.c;do
+	OUT=./tmp/${file%*.c}.o
+        if [ "$1" = "clean" -o "$1" = "distclean" ]; then
+                rm ./bin/${file%*.c}
+                if [ "$1" = "distclean" ]; then
+                        rm $OUT
+                        rm ./zip/${file%*.c}*.zip
+                fi
+        else
+		if [ ${file} -ot ./bin/${file%*.c} ]; then
+			if [ ../include/grub4dos.h -ot ./bin/${file%*.c} ] ; then
+				continue
+			fi
+		fi
+		echo "build $file --> $OUT --> ./bin/${file%*.c}"
+		$CC -nostdlib -DASM_BUILD_DATE="\"$ASMDATE"\" -I../include/ -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE $file -o $OUT || continue
+		objcopy -O binary $OUT ./bin/${file%*.c} || continue
+		rm -f ./zip/${file%*.c}.zip
+		zip -9 -j -q "./zip/${file%*.c}-${DATE}.zip" ./bin/${file%*.c} ${file%*.c}-*.txt
+	fi
+done
