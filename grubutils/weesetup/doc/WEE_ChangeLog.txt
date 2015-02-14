@@ -1,0 +1,90 @@
+
+2011-02-17 fixed a bug of "0xEA not properly restored" in realmode_run(asm.S).
+2011-02-16 fixed a bug on stack checking in realmode_run(asm.S).
+2011-02-01 prevent IO.SYS from wiping out int32-int3F.
+2011-01-31 realmode .com style program support.
+2011-01-14 add comments on how to alter the leading 0xEB for buggy Acer.
+2011-01-07 (Roy)supported drbio.sys that is packed with pack101.
+
+------------------------------------------------------------------------
+r14 | Roy | 2010-12-26 09:03:13 +0800 (Sun, 26 Dec 2010) | 3 lines
+
+wee-2010-12-25 import.
+- makefile patch from http://bbs.znpc.net/viewthread.php?tid=5838&page=16&fromuid=14598#pid46984
+- changed prototype of rawread to match Grub4DOS
+------------------------------------------------------------------------
+r13 | Roy | 2010-12-23 19:07:09 +0800 (Thu, 23 Dec 2010) | 1 line
+
+remove intermediate file.
+------------------------------------------------------------------------
+r12 | Roy | 2010-12-19 18:37:09 +0800 (Sun, 19 Dec 2010) | 3 lines
+
+wee-2010-12-19 import.
+- support loading ROM-DOS 7.10 rom-dos.sys/ibmbio.com
+- fix loading memdisk initrd low issue
+------------------------------------------------------------------------
+r11 | Roy | 2010-12-19 18:34:29 +0800 (Sun, 19 Dec 2010) | 2 lines
+
+wee-2010-12-18 import.
+- support loading DR DOS 7.01.08 WIP drbio.sys
+------------------------------------------------------------------------
+r10 | Roy | 2010-12-19 18:33:22 +0800 (Sun, 19 Dec 2010) | 3 lines
+
+wee-2010-12-17 import.
+- make the last of contiguous "title" command available and others in contiguous "title" disabled.
+- fix command line CF/LF display
+------------------------------------------------------------------------
+r9 | Roy | 2010-12-19 18:31:00 +0800 (Sun, 19 Dec 2010) | 4 lines
+
+wee-2010-12-16 import.
+- fix menu struct corrupting interrupt vector table issue
+- adjust menu position
+- add "rootnoverify" command
+------------------------------------------------------------------------
+r8 | Roy | 2010-12-19 18:26:25 +0800 (Sun, 19 Dec 2010) | 5 lines
+
+wee-2010-12-12 (bad) import.
+- adding "title" command based menu system.
+- adding realmode_run function support.
+- this version of menu struct corrupts interrupt vector table.
+- *DO NOT USE THIS VERSION*
+------------------------------------------------------------------------
+r7 | Roy | 2010-12-19 18:25:23 +0800 (Sun, 19 Dec 2010) | 3 lines
+
+wee-2010-06-26 import.
+- rename variables
+- remove next_partition_partnum
+------------------------------------------------------------------------
+r6 | Roy | 2010-12-19 18:22:54 +0800 (Sun, 19 Dec 2010) | 4 lines
+
+wee-2010-06-25 import.
+- cleanup file systems:
+* don't put current_partition into hibyte of boot_drive, use install_partition instead.
+* cleanup BSD slice codes.
+------------------------------------------------------------------------
+r5 | Roy | 2010-12-19 18:00:39 +0800 (Sun, 19 Dec 2010) | 2 lines
+
+wee-2010-06-24 import.
+- cleanup "find" command.
+------------------------------------------------------------------------
+r4 | Roy | 2010-12-19 17:57:56 +0800 (Sun, 19 Dec 2010) | 2 lines
+
+wee-2010-06-23 import.
+- adding command line history function.
+------------------------------------------------------------------------
+r3 | Roy | 2010-12-19 17:56:23 +0800 (Sun, 19 Dec 2010) | 3 lines
+
+wee-2010-06-22 import.
+- add "exit" command.
+- add more defines.
+------------------------------------------------------------------------
+r2 | Roy | 2010-12-19 17:49:31 +0800 (Sun, 19 Dec 2010) | 2 lines
+
+wee-2010-06-20 import.
+- adding copyright message, license, and readme.
+------------------------------------------------------------------------
+r1 | Roy | 2010-12-19 17:47:18 +0800 (Sun, 19 Dec 2010) | 1 line
+
+wee-2010-06-19 initial import.
+------------------------------------------------------------------------
+

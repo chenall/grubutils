@@ -1,0 +1,6 @@
+dd if=/dev/zero of=./wee63.mbr count=63
+####seek=`cat ../wee/stage2_size.h`
+####seek=`echo $((${seek##* }+0x40C))`
+dd conv=notrunc if=../wee/wee63.mbr of=./wee63.mbr bs=1
+dd conv=notrunc if=./nt6mbr.bin of=./wee63.mbr seek=1 count=1
+####dd conv=notrunc if=./menu.wee of=./wee63.mbr bs=1 seek=${seek}
