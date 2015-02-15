@@ -225,12 +225,12 @@ probe_mbr (struct master_and_dos_boot_sector *BS, unsigned long start_sector1,
 	   unsigned long sector_count1, unsigned long part_start1)
 {
   unsigned long j, i;
-  unsigned long probed_total_sectors;
+//  unsigned long probed_total_sectors;
   unsigned long probed_heads;
   unsigned long probed_sectors_per_track;
   unsigned long probed_cylinders;
   unsigned long sectors_per_cylinder;
-
+  
   /* matrix of coefficients of linear equations
    *
    *   C[n] * (H_count * S_count) + H[n] * S_count = LBA[n] - S[n] + 1
@@ -514,7 +514,7 @@ probe_mbr (struct master_and_dos_boot_sector *BS, unsigned long start_sector1,
 	    probed_cylinders = 1;
 	}
       sectors_per_cylinder = probed_heads * probed_sectors_per_track;
-      probed_total_sectors = sectors_per_cylinder * probed_cylinders;
+//      probed_total_sectors = sectors_per_cylinder * probed_cylinders;
     }
   else
     {
@@ -606,7 +606,7 @@ probe_mbr (struct master_and_dos_boot_sector *BS, unsigned long start_sector1,
 	(sector_count1 + sectors_per_cylinder - 1) / sectors_per_cylinder;
       if (probed_cylinders < Cmax + 1)
 	probed_cylinders = Cmax + 1;
-      probed_total_sectors = sectors_per_cylinder * probed_cylinders;
+//      probed_total_sectors = sectors_per_cylinder * probed_cylinders;
     }
 
   mbr_nhd = probed_heads;
@@ -679,7 +679,7 @@ get_fstype (unsigned char *buf)
   if (chk_mbr (buf))
     return FST_MBR;
 
-  if (chk_mbr2 (buf))
+  if (chk_mbr2 ((char *)buf))
     return FST_MBR2;
 
   // The first sector of EXT2 might not contain the 0xAA55 signature
@@ -687,14 +687,16 @@ get_fstype (unsigned char *buf)
     return FST_EXT2;
   if (valueat (buf[0], 0x1FE, unsigned short) != 0xAA55)
       return FST_OTHER;
-  if (!strncmp (&buf[0x36], "FAT", 3))
+  if (!strncmp ((char *)&buf[0x36], "FAT", 3))
     return ((buf[0x26] == 0x28)
 	    || (buf[0x26] == 0x29)) ? FST_FAT16 : FST_OTHER;
-  if (!strncmp (&buf[0x52], "FAT32", 5))
+  if (!strncmp ((char *)&buf[0x52], "FAT32", 5))
     return ((buf[0x42] == 0x28)
 	    || (buf[0x42] == 0x29)) ? FST_FAT32 : FST_OTHER;
-  if (!strncmp (&buf[0x3], "NTFS", 4))
+  if (!strncmp ((char *)&buf[0x3], "NTFS", 4))
     return ((buf[0] == 0xEB) && (buf[1] == 0x52)) ? FST_NTFS : FST_OTHER;
+  if (!strncmp ((char *)&buf[0x3], "EXFAT", 5))
+    return ((buf[0] == 0xEB) && (buf[1] == 0x76)) ? FST_EXFAT : FST_OTHER;
   return FST_OTHER;
 }
 
@@ -715,8 +717,10 @@ fst2str (int fs)
       return "FAT32";
     case FST_NTFS:
       return "NTFS";
+    case FST_EXFAT:
+      return "exFAT";
     case FST_EXT2:
-      return "EXT2/EXT3";
+      return "EXT2/EXT3/EXT4";
     default:
       return "Unknown";
     }
@@ -733,7 +737,7 @@ static fstab_t fstab[] = {
   {0x4, "FAT16"},
   {0x5, "Extended"},
   {0x6, "FAT16B"},
-  {0x7, "NTFS"},
+  {0x7, "NTFS/exFAT"},
   {0xB, "FAT32"},
   {0xC, "FAT32X"},
   {0xE, "FAT16X"},
@@ -741,12 +745,12 @@ static fstab_t fstab[] = {
   {0x11, "(H)FAT12"},
   {0x14, "(H)FAT16"},
   {0x16, "(H)FAT16B"},
-  {0x17, "(H)NTFS"},
+  {0x17, "(H)NTFS/exFAT"},
   {0x1B, "(H)FAT32"},
   {0x1C, "(H)FAT32X"},
   {0x1E, "(H)FAT16X"},
   {0x82, "Swap"},
-  {0x83, "Ext2"},
+  {0x83, "Ext2/3/4"},
   {0xA5, "FBSD"},
   {0, "Other"}
 };

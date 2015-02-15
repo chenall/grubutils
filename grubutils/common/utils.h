@@ -30,6 +30,7 @@ extern "C" {
 #define FST_FAT32		4
 #define FST_NTFS		5
 #define FST_EXT2		6
+#define FST_EXFAT		7
 
 extern int mbr_nhd, mbr_spt;
 int get_fstype (unsigned char*);
