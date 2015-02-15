@@ -1,5 +1,5 @@
-#include "include/grub4dos.h"
-#include "include/pc_slice.h"
+#include "../include/grub4dos.h"
+#include "../include/pc_slice.h"
 /*
  *  GRUB  --  GRand Unified Bootloader
  *  Copyright (C) 1999,2000,2001,2002,2003,2004  Free Software Foundation, Inc.
