@@ -2,8 +2,8 @@
  * The C code for a grub4dos executable may have defines as follows:
  * 用于编写外部命令的函数定义。
 */
-#ifndef GRUB4DOS_2011_12_13
-#define GRUB4DOS_2011_12_13
+#ifndef GRUB4DOS_2015_02_15
+#define GRUB4DOS_2015_02_15
 #undef NULL
 #define NULL         ((void *) 0)
 
@@ -212,18 +212,18 @@ typedef enum
 #define open ((int (*)(char *))((*(int **)0x8300)[26]))
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned long))((*(int **)0x8300)[27]))
 #define close ((void (*)(void))((*(int **)0x8300)[28]))
-#define devread ((int (*)(unsigned long long sector, unsigned long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))((*(int **)0x8300)[32]))
+#define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))((*(int **)0x8300)[32]))
 /*
  * int
  * devwrite (unsigned long sector, unsigned long sector_count, char *buf)
  */
-#define devwrite ((int (*)(unsigned long, unsigned long, char *))((*(int **)0x8300)[33]))
+#define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))((*(int **)0x8300)[33]))
 #define next_partition ((int (*)(void))((*(int **)0x8300)[34]))
 #define open_device ((int (*)(void))((*(int **)0x8300)[35]))
 #define real_open_partition ((int (*)(int))((*(int **)0x8300)[36]))
 #define set_device ((char *(*)(char *))((*(int **)0x8300)[37]))
 #define parse_string ((int (*)(char *))((*(int **)0x8300)[41]))
-#define hexdump ((void (*)(unsigned long, char *, int))((*(int **)0x8300)[42]))
+#define hexdump ((void (*)(unsigned long long,char*,int))((*(int **)0x8300)[42]))
 #define skip_to ((char *(*)(int after_equal, char *cmdline))((*(int **)0x8300)[43]))
 #define builtin_cmd ((int (*)(char *cmd, char *arg, int flags))((*(int **)0x8300)[44]))
 #define get_datetime ((void (*)(unsigned long *date, unsigned long *time))((*(int **)0x8300)[45]))
