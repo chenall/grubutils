@@ -28,23 +28,35 @@
  */
 
 #include "grub4dos.h"
+#define DEBUG 0
 static int my_app_id = 0;/* this is needed, see the following comment. */
 typedef struct
 {
   unsigned short code[4];
   char name[10];
-} key_tab_t;
+} __attribute__ ((packed)) key_tab_t;
 typedef struct 
 {
 	unsigned short key_code;
 	unsigned short title_num;
-} hotkey_t;
+} __attribute__ ((packed)) hotkey_t;
 
 typedef struct
 {
     int key_code;
     char *cmd;
 } hotkey_c;
+
+union
+{
+	int flags;
+	struct
+	{
+		unsigned char sel;
+		unsigned char first;
+		unsigned short flag;
+	} k;
+} __attribute__ ((packed)) cur_menu_flag;
 
 typedef struct
 {
@@ -57,6 +69,9 @@ typedef struct
 #define HOTKEY_MAGIC 0X79654B48
 #define HOTKEY_PROG_MEMORY	0x2000000-0x200000
 #define HOTKEY_FUNC *(int*)0x827C
+#define HOTKEY_FLAGS_AUTO_HOTKEY (1<<12)
+#define HOTKEY_FLAGS_NOT_CONTROL (1<<13)
+#define HOTKEY_FLAGS_NOT_BOOT	 (1<<14)
 #define BUILTIN_CMDLINE		0x1	/* Run in the command-line.  */
 #define BUILTIN_MENU			(1 << 1)/* Run in the menu.  */
 static key_tab_t key_table[] = {
@@ -158,12 +173,13 @@ static unsigned short allow_key[9] = {
 /*KEY_DOWN        */0x5000,
 /*KEY_NPAGE       */0x5100
 };
+
 static int _checkkey_ = 0;
 static char keyname_buf[16];
 static char* str_upcase (char* str);
 static int get_keycode (char* key);
 static int get_key(void);
-static int check_hotkey(char **title);
+static int check_hotkey(char **title,int flags);
 static int check_f11(void);
 static char *get_keyname (unsigned short code);
 static int check_allow_key(unsigned short key);
@@ -184,17 +200,19 @@ asm(".long 0xBCBAA7BA");
  * file. Do not insert any other asm lines here.
  */
 
-static int main(char *arg,int flags)
+static int main(char *arg,int flags,int flags1)
 {
 	int i;
 	char *base_addr;
 	char *magic;
 	static hotkey_t *hotkey;
-	unsigned long hotkey_flags;
-	unsigned long *p_hotkey_flags;
+	unsigned short hotkey_flags;
+	unsigned short *p_hotkey_flags;
 	base_addr = (char *)(init_free_mem_start+512);
 	hotkey = (hotkey_t*)base_addr;
-	p_hotkey_flags = (unsigned long*)(base_addr + 508);
+	p_hotkey_flags = (unsigned short*)(base_addr + 508);
+	cur_menu_flag.flags = flags1;
+
 	if (flags == HOTKEY_MAGIC)
 	{
 	    if (arg && *(int *)arg == 0x54494E49)//INIT 初始数数据
@@ -208,7 +226,7 @@ static int main(char *arg,int flags)
 	{
 		int c;
 		hotkey_c *hkc = hotkey_data.hk_cmd;
-		if (my_app_id != HOTKEY_MAGIC || (!hotkey->key_code && !hkc->key_code))
+		if (my_app_id != HOTKEY_MAGIC/* || (!hotkey->key_code && !hkc->key_code)*/)
 		{
 		    return getkey();
 		}
@@ -218,7 +236,11 @@ static int main(char *arg,int flags)
 		#else
 		c = getkey();
 		#endif
-
+		#if DEBUG
+		putchar_hooked = 0;
+		gotoxy(0,0);
+		printf("%x,%x",cur_menu_flag.k.first,cur_menu_flag.k.sel);
+		#endif
 		if (!c || check_allow_key(c))
 			return c;
 		for(i=0;i<64;++i)
@@ -257,9 +279,53 @@ static int main(char *arg,int flags)
 		for (;hotkey->key_code;++hotkey)
 		{
 			if (hotkey->key_code == c)
-				return hotkey_flags|(hotkey->title_num<<16);
+				return (hotkey_flags|hotkey->title_num)<<16;
 		}
-		if (hotkey_flags & (1<<29))
+
+		if ((hotkey_flags & HOTKEY_FLAGS_AUTO_HOTKEY) && (char)c > 0x20)
+		{
+			char h = tolower(c&0xff);
+			char *old_c = (char*)(p_hotkey_flags+1);
+			char *old_t = old_c + 1;
+			int find = -1,n = *old_t;
+			char **titles;
+			if (*(char*)0x417 & 3)
+			{
+				c = (c & 0xff00) | h ;
+				goto chk_control;
+			}
+			titles = (char **)(base_addr + 512);
+			if (*old_c != h)
+			{//不同按键清除记录
+				*old_c = h;
+				n = *old_t = 0;
+			}
+			for(i=0;i<256;++i)
+			{
+				if (!*titles)
+					break;
+				if (check_hotkey(titles,h))
+				{//第几次按键跳到第几个匹配的菜单(无匹配转第一个)
+					if (n-- == 0)
+					{
+						find = i;
+						break;
+					}
+					if (find == -1) find = i;
+				}
+				++titles;
+			}
+			if (find != -1)
+			{
+				if (find != i) *old_t = 1;
+				else (*old_t)++;
+				return (hotkey_flags|HOTKEY_FLAGS_NOT_BOOT|find)<<16;
+			}
+			if (h > '9')
+				return 0;
+		}
+		chk_control:
+		if (hotkey_flags & HOTKEY_FLAGS_NOT_CONTROL)
 			return 0;
 		return c;
 	}
@@ -271,7 +337,7 @@ static int main(char *arg,int flags)
 		{
 			if (!*titles)
 				break;
-			if (hotkey->key_code = check_hotkey(titles))
+			if (hotkey->key_code = check_hotkey(titles,0))
 			{
 				hotkey->title_num = i;
 				++hotkey;
@@ -285,16 +351,20 @@ static int main(char *arg,int flags)
 	    printf("Hotkey for grub4dos by chenall,%s\n",__DATE__);
 	if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg))
 	{
-	    printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n\thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\te.g.\n\t\t hotkey [F9] \"reboot\"\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
+	    printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n\thotkey -A\tSelect the menu item with the first letter of the menu\n\thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\te.g.\n\t\t hotkey [F9] \"reboot\"\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n\n\tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n\n");
 	}
-	hotkey_flags = 1<<31;
+	hotkey_flags = 1<<15;
 	while (*arg == '-')
 	{
 		++arg;
 		if (*(unsigned short*)arg == 0x626E) //nb not boot
-			hotkey_flags |= 1<<30;
+			hotkey_flags |= HOTKEY_FLAGS_NOT_BOOT;
 		else if (*(unsigned short*)arg == 0x636E) //nc not control
-			hotkey_flags |= 1<<29;
+			hotkey_flags |= HOTKEY_FLAGS_NOT_CONTROL;
+		else if (*arg == 'A')
+		{
+			hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
+		}
 		else if (*arg == 'u')
 		{
 			HOTKEY_FUNC = 0;
@@ -302,7 +372,7 @@ static int main(char *arg,int flags)
 		}
 		arg = wee_skip_to(arg,0);
 	}
-	*p_hotkey_flags = hotkey_flags;
+
 	if (!HOTKEY_FUNC)
 	{
 		int buff_len;
@@ -323,6 +393,7 @@ static int main(char *arg,int flags)
 			printf("Current BIOS Does not support F11,F12 key,try to hack it.\n");
 		}
 		#endif
+		*p_hotkey_flags = hotkey_flags;
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		my_app_id = HOTKEY_MAGIC;
 		memmove((void*)HOTKEY_PROG_MEMORY,p,buff_len);
@@ -334,8 +405,12 @@ static int main(char *arg,int flags)
 		builtin_cmd("insmod",p,flags);
 		i = ((int(*)(char*,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC);//获取HOTKEY数据位置并作一些初使化
 		if (debug > 0)
+		{
 		    printf("Hotkey Installed!\n");
+		}
 	}
+	else
+		*p_hotkey_flags |= hotkey_flags;
 
 	if (arg)
 	{
@@ -367,7 +442,7 @@ static int main(char *arg,int flags)
 		}
 		return -1;
 	    }
-	    key_code = check_hotkey(&arg);
+	    key_code = check_hotkey(&arg,0);
     	    if (!key_code)
 		return 0;
        	    while(*arg)
@@ -544,13 +619,16 @@ static int get_key(void)
 /*
 	从菜单标题中提取热键代码
 	返回热键对应的按键码。
+	flags 非0 时判断菜单的首字母.-A参数.
 */
-static int check_hotkey(char **title)
+static int check_hotkey(char **title,int flags)
 {
 	char *arg = *title;
 	unsigned short code;
 	while (*arg && *arg <= ' ')
 		++arg;
+	if (flags)
+		return tolower(*arg) == flags;
 	if (*arg == '^')
 	{
 		++arg;
