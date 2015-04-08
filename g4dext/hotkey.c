@@ -70,6 +70,7 @@ typedef struct
 #define HOTKEY_PROG_MEMORY	0x2000000-0x200000
 #define HOTKEY_FUNC *(int*)0x827C
 #define HOTKEY_FLAGS_AUTO_HOTKEY (1<<12)
+#define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)
 #define HOTKEY_FLAGS_NOT_CONTROL (1<<13)
 #define HOTKEY_FLAGS_NOT_BOOT	 (1<<14)
 #define BUILTIN_CMDLINE		0x1	/* Run in the command-line.  */
@@ -238,8 +239,8 @@ static int main(char *arg,int flags,int flags1)
 		#endif
 		#if DEBUG
 		putchar_hooked = 0;
-		gotoxy(0,0);
-		printf("%x,%x",cur_menu_flag.k.first,cur_menu_flag.k.sel);
+		gotoxy(70,0);
+		printf("%d,%d\t",cur_menu_flag.k.first,cur_menu_flag.k.sel);
 		#endif
 		if (!c || check_allow_key(c))
 			return c;
@@ -288,12 +289,15 @@ static int main(char *arg,int flags,int flags1)
 			char *old_c = (char*)(p_hotkey_flags+1);
 			char *old_t = old_c + 1;
 			int find = -1,n = *old_t;
+			int cur_sel = -1;
 			char **titles;
 			if (*(char*)0x417 & 3)
 			{
 				c = (c & 0xff00) | h ;
 				goto chk_control;
 			}
+			if (cur_menu_flag.k.flag == 0x4B40)
+				cur_sel = cur_menu_flag.k.sel + cur_menu_flag.k.first;
 			titles = (char **)(base_addr + 512);
 			if (*old_c != h)
 			{//不同按键清除记录
@@ -306,7 +310,15 @@ static int main(char *arg,int flags,int flags1)
 					break;
 				if (check_hotkey(titles,h))
 				{//第几次按键跳到第几个匹配的菜单(无匹配转第一个)
-					if (n-- == 0)
+					if (cur_sel != -1)
+					{
+						if (cur_sel < i)
+						{
+							find = i;
+							break;
+						}
+					}
+					else if (n-- == 0)
 					{
 						find = i;
 						break;
