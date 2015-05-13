@@ -71,7 +71,7 @@ typedef struct _STORAGE_DEVICE_NUMBER {
 } STORAGE_DEVICE_NUMBER, *PSTORAGE_DEVICE_NUMBER;
 
 int
-get_disk (char drive, int rdwr)
+get_disk (char drive, int rdwr, int lock)
 {
   STORAGE_DEVICE_NUMBER d1;
   char dn[24];
@@ -80,7 +80,11 @@ get_disk (char drive, int rdwr)
   int i;
 
   sprintf (dn, "\\\\.\\%c:", drive);
-  hd = CreateFile (dn, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+  if (lock==0)
+    hd = CreateFile (dn, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+		   NULL, OPEN_EXISTING, 0, 0);
+  else
+    hd = CreateFile (dn, GENERIC_READ, FILE_SHARE_READ,
 		   NULL, OPEN_EXISTING, 0, 0);
   if (hd == INVALID_HANDLE_VALUE)
     return -1;
@@ -116,7 +120,7 @@ get_disk (char drive, int rdwr)
 #endif
 
 xd_t *
-xd_open (char *fn, int rdwr)
+xd_open (char *fn, int rdwr, int lock)
 {
   char dn[24];
   xd_t *xd;
@@ -192,18 +196,28 @@ xd_open (char *fn, int rdwr)
 
       if ((c >= 'A') && (c <= 'Z'))
 	{
-	  hd = get_disk (c, rdwr);
+	  hd = get_disk (c, rdwr, lock);
 	  tt |= XDF_DISK;
 	}
     }
 
   if (hd == -1)
-    hd =
-      (int) CreateFile (fn, ((rdwr) ? GENERIC_WRITE : 0) | GENERIC_READ,
-			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-			((rdwr) && ((tt & XDF_DISK) == 0))? OPEN_ALWAYS :
-			OPEN_EXISTING,
-			FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING, 0);
+    {
+    if (lock==0)
+      hd =
+        (int) CreateFile (fn, ((rdwr) ? GENERIC_WRITE : 0) | GENERIC_READ,
+	  		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+	  		((rdwr) && ((tt & XDF_DISK) == 0))? OPEN_ALWAYS :
+	  		OPEN_EXISTING,
+	  		FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING, 0);
+    else
+        hd =
+          (int) CreateFile (fn, ((rdwr) ? GENERIC_WRITE : 0) | GENERIC_READ,
+	    		FILE_SHARE_READ, NULL,
+	    		((rdwr) && ((tt & XDF_DISK) == 0))? OPEN_ALWAYS :
+	     		OPEN_EXISTING,
+	  	  	FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING, 0);
+   }
 #else
   hd = open (fn, ((rdwr) ? O_RDWR : O_RDONLY) | O_BINARY);
 #endif
@@ -251,7 +265,7 @@ xd_seek (xd_t * xd, unsigned long sec)
       bs[0] = sec << 9;
       bs[1] = sec >> 23;
 
-      return (SetFilePointer ((HANDLE) xd->num, bs[0], &bs[1], FILE_BEGIN)
+      return (SetFilePointer ((HANDLE) xd->num, bs[0], (PLONG)&bs[1], FILE_BEGIN)
 	      == 0xFFFFFFFF);
 #else
       // Test if 64-bit seek is supported
@@ -373,6 +387,7 @@ xd_enum (xd_t * xd, xde_t * xe)
 		  {
 		    xe->cur = cc;
 		    xe->dfs = ebuf[cc * 16 + 4 + 0x1BE];
+                xe->btf = ebuf[cc * 16 + 0x1BE];
 		    xe->bse =
 		      valueat (ebuf, cc * 16 + 8 + 0x1BE, unsigned long);
 		    xe->len =
@@ -603,7 +618,7 @@ xd_lock (xd_t * xd)
 
       if (! DeviceIoControl (hd, FSCTL_LOCK_VOLUME, NULL, 0, NULL, 0,
 			     &nr, 0))
-	return 1;
+	continue;
 
       locked_volumes[c - 'C'] = hd;
     }

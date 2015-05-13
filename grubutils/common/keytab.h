@@ -23,9 +23,9 @@
 extern "C" {
 #endif
 
-char* str_upcase (char* str);
 int get_keycode (char* key);
 char *get_keyname (unsigned short code);
+char *str_upcase (char *str);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

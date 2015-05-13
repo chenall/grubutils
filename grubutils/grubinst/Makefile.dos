@@ -22,7 +22,7 @@ endif
 
 PACKAGE = grubinst
 
-extra_SRCS = Makefile.dos version grldrstart.S
+extra_SRCS = Makefile.dos version grldrstart45cp.S grldrstart45cnp.S grldrstart46ap.S grldrstart46anp.S
 
 all_DIST = readme.txt changelog.txt
 
@@ -31,7 +31,7 @@ cmn_SRCS = common.mk ldscript keytab.c keytab.h bin2h.c bin2h.pl ver2h.c ver2h.p
 all_SRCS = grubinst.c
 all_EXES = grbins16.exe
 
-extra_CLEAN = grldr.mbr version.h grub_mbr.h grubinst.obj utils.obj xdio.obj keytab.obj xd16.obj
+extra_CLEAN = grldr45cp.mbr grldr45cnp.mbr grldr46ap.mbr grldr46anp.mbr version.h grub_mbr45cp.h grub_mbr45cnp.h grub_mbr46ap.h grub_mbr46anp.h grub_pbr46al.h grubinst.obj utils.obj xdio.obj keytab.obj xd16.obj
 
 -include common.mk $(SRCDIR)../common/common.mk
 
@@ -41,7 +41,7 @@ SYSSTR   = dos
 grbins16.exe: grubinst.obj utils.obj xdio.obj keytab.obj xd16.obj
 	bcc $(CFLAGS) -e$@ $^
 
-grubinst.obj: version.h grub_mbr.h
+grubinst.obj: version.h grub_mbr45cp.h grub_mbr46ap.h grub_mbr45cnp.h grub_mbr46anp.h grub_pbr46al.h
 
 %.obj: %.c
 	bcc $(CFLAGS) -c -o$@ $<
@@ -49,10 +49,30 @@ grubinst.obj: version.h grub_mbr.h
 %.obj: %.asm
 	tasm $(subst /,\\,$<),$(subst /,\\,$@)
 
-grldr.mbr: grldrstart.S ntfsbs.S
+grldr46anp.mbr: grldrstart46anp.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+grldr45cp.mbr: grldrstart45cp.S ntfsbs.S
 	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
 	$(OC) -O binary grldr$(EXEEXT) $@
 	rm grldr$(EXEEXT)
 
-grub_mbr.h: grldr.mbr $(BIN2H_DEPS)
-	$(BIN2H_EXEC) $< $@ grub_mbr
+grldr45cnp.mbr: grldrstart45cnp.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+grldr46ap.mbr: grldrstart46ap.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+grub_mbr45cp.h: grldr45cp.mbr $(BIN2H_DEPS)
+	$(BIN2H_EXEC) $< $@ grub_mbr45cp
+grub_mbr45cnp.h: grldr45cnp.mbr $(BIN2H_DEPS)
+	$(BIN2H_EXEC) $< $@ grub_mbr45cnp
+grub_mbr46anp.h: grldr46anp.mbr $(BIN2H_DEPS)
+	$(BIN2H_EXEC) $< $@ grub_mbr46anp
+grub_mbr46ap.h: grldr46ap.mbr $(BIN2H_DEPS)
+	$(BIN2H_EXEC) $< $@ grub_mbr46ap
+grub_pbr46al.h: grldr46al.pbr $(BIN2H_DEPS)
+	$(BIN2H_EXEC) $< $@ grub_pbr46al

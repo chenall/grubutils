@@ -147,6 +147,7 @@ typedef enum
 #define graphics_CURSOR ((*(int **)0x8304)[28])
 #define menu_border ((*(struct border ***)0x8304)[29])
 #define current_color ((*(int **)0x8304)[42])
+//#define current_color_64bit ((*(int **)0x8304)[43])
 #define foreground ((*(int **)0x8304)[43])
 #define background ((*(int **)0x8304)[44])
 #define p_get_cmdline_str ((*(int **)0x8304)[45])

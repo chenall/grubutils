@@ -21,6 +21,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef WIN32
 
@@ -211,9 +212,9 @@ int main(int argc,char** argv)
     {
       printf("%s style binary\n",(old_style)?"Old":"New");
       printf("Data offset: 0x%X\n",data_ofs);
-      printf("Menu offset: 0x%X\n",pmenu);
+      printf("Menu offset: 0x%X\n",(unsigned int)pmenu);
       printf("Menu length: %u\n",len);
-      printf("Bss  offset: 0x%X\n",pbss);
+      printf("Bss  offset: 0x%X\n",(unsigned int)pbss);
     }
   else if (op==OP_PRINT)
     printf("%s",buf);

@@ -22,14 +22,26 @@ CFLAGS=-DWIN32
 
 all: grubinst.exe grubinst_gui.exe
 
-grubinst.exe: grubinst.c grub_mbr.h utils.obj utils.h key_tab.h version.h
+grubinst.exe: grubinst.c grub_mbr45cp.h grub_mbr46ap.h grub_pbr46al.h utils.obj utils.h key_tab.h version.h
 	$(CC) $(CFLAGS) grubinst.c utils.obj
 
 utils.obj: utils.c
 	$(CC) $(CFLAGS) -c utils.c
 
-grub_mbr.h: grldr.mbr bin2h.exe
-	bin2h grldr.mbr grub_mbr.h grub_mbr
+grub_mbr45cp.h: grldr45cp.mbr bin2h.exe
+	bin2h grldr45cp.mbr grub_mbr45cp.h grub_mbr45cp
+
+grub_mbr45cnp.h: grldr45cnp.mbr bin2h.exe
+	bin2h grldr45cnp.mbr grub_mbr45cnp.h grub_mbr45cnp
+
+grub_mbr46ap.h: grldr46ap.mbr bin2h.exe
+	bin2h grldr46ap.mbr grub_mbr46ap.h grub_mbr46ap
+
+grub_mbr46anp.h: grldr46anp.mbr bin2h.exe
+	bin2h grldr46anp.mbr grub_mbr46anp.h grub_mbr46anp
+
+grub_pbr46al.h: grldr46al.pbr bin2h.exe
+	bin2h grldr46al.pbr grub_pbr46al.h grub_pbr46al
 
 version.h: version ver2h.exe
 	ver2h version version.h
@@ -40,7 +52,7 @@ bin2h.exe: bin2h.c
 ver2h.exe: ver2h.c
 	$(CC) $(CFLAGS) ver2h.c
 
-grubinst_gui.exe: grubinst_gui.c resource.h grubinst_gui.res utils.obj
+grubinst_gui.exe: grubinst_gui.c resource.h keytab.h grub_mbr45cp.h grub_mbr45cnp.h grub_mbr46ap.h grub_mbr46anp.h grub_pbr46al.h grubinst_gui.res utils.obj
 	$(CC) $(CFLAGS) grubinst_gui.c utils.obj grubinst_gui.res user32.lib comdlg32.lib
 
 grubinst_gui.res: grubinst_gui.rc resource.h grubinst.ico
@@ -59,5 +71,9 @@ clean:
 	del ver2h.obj
 
 dist-clean: clean
-	del grub_mbr.h
+	del grub_mbr45cp.h
+	del grub_mbr46ap.h
+	del grub_mbr45cnp.h
+	del grub_mbr46anp.h
+	del grub_pbr46al.h
 	del version.h

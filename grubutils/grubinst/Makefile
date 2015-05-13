@@ -30,19 +30,16 @@ PACKAGE = grubinst
 
 # USE_RC ?=y
 
-extra_SRCS = Makefile Makefile.vc6 Makefile.dos version resource.h ntfsbs.S g2hdr.S grldrstart.S grubinst.ico
+extra_SRCS = Makefile Makefile.vc6 Makefile.dos version resource.h ntfsbs.S g2hdr.S grldrstart45cp.S grldrstart45cnp.S grldrstart46ap.S grldrstart46anp.S grubinst.ico
 
-all_DIST = readme.txt changelog.txt
-all_DIST_w32 = grubinst_gui.chs
+all_DIST = readme.txt changelog.txt grubinst_gui.chs
 
 cmn_SRCS = common.mk ldscript keytab.c keytab.h bin2h.c bin2h.pl ver2h.c ver2h.pl utils.c utils.h xdio.c xdio.h xd16.asm
 
 all_SRCS := grubinst.c grubinst_gui.c grubinst_gui.rc grubmenu.c $(extra_SRCS)
-all_OBJS = grubinst.o grubmenu.o
-all_EXES = grubinst$(EXEEXT) grubmenu$(EXEEXT)
+all_OBJS = grubinst.o grubmenu.o grubinst_gui.o
+all_EXES = grubinst$(EXEEXT) grubmenu$(EXEEXT) grubinst_gui$(EXEEXT)
 
-all_EXES_w32 = grubinst_gui$(EXEEXT)
-all_OBJS_w32 = grubinst_gui.o
 
 ifeq ($(BUILD_NTFSBS),y)
 all_BINS += ntfsbs.bin
@@ -52,18 +49,31 @@ ifeq ($(BUILD_G2HDR),y)
 all_BINS += g2hdr.bin
 endif
 
-extra_CLEAN = grldr.mbr version.h grub_mbr.h *.ro
+extra_CLEAN = grldr45cp.mbr grldr46ap.mbr grldr45cnp.mbr grldr46anp.mbr version.h grub_mbr45cp.h grub_mbr46ap.h grub_mbr45cnp.h grub_mbr46anp.h grub_pbr46al.h *.ro
 
 -include common.mk $(SRCDIR)../common/common.mk
 
 grubinst$(EXEEXT): grubinst.o utils.o xdio.o keytab.o
 	$(CC) $(CFLAGS) -o$@ $^
 
-grubinst.o: version.h grub_mbr.h
+grubinst.o: version.h grub_mbr45cp.h grub_mbr46ap.h grub_pbr46al.h
 
-grubinst_gui.o: version.h
+grubinst_gui.o: version.h grub_mbr45cp.h grub_mbr46ap.h grub_mbr45cnp.h grub_mbr46anp.h grub_pbr46al.h
 
-grldr.mbr: grldrstart.S ntfsbs.S
+grldr45cp.mbr: grldrstart45cp.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+
+grldr45cnp.mbr: grldrstart45cnp.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+grldr46ap.mbr: grldrstart46ap.S ntfsbs.S
+	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
+	$(OC) -O binary grldr$(EXEEXT) $@
+	rm grldr$(EXEEXT)
+grldr46anp.mbr: grldrstart46anp.S ntfsbs.S
 	$(CC) -nostdlib -DGRLDR_MBR -Wl,-N -Wl,-T -Wl,$(CMNDIR)ldscript -o grldr$(EXEEXT) $<
 	$(OC) -O binary grldr$(EXEEXT) $@
 	rm grldr$(EXEEXT)
@@ -88,10 +98,23 @@ grubinst_gui.ro: grubinst_gui.rc resource.h grubinst.ico
 
 endif
 
-grubinst_gui$(EXEEXT): grubinst_gui.o utils.o xdio.o grubinst_gui.ro
+grubinst_gui$(EXEEXT): grubinst_gui.o utils.o keytab.o xdio.o grubinst_gui.ro
 	$(CC) $(CFLAGS) -o$@ $^ -mwindows
 
+else
+grubinst$(EXEEXT): grubinst.o utils.o xdio.o keytab.o
+	$(CC) $(CFLAGS) -o$@ $^
+grubinst_gui$(EXEEXT): grubinst_gui.o utils.o keytab.o xdio.o
+	$(CC) $(CFLAGS) -o$@ $^
 endif
 
-grub_mbr.h: grldr.mbr $(BIN2H_DEPS)
-	./$(BIN2H_EXEC) $< $@ grub_mbr
+grub_mbr45cp.h: grldr45cp.mbr $(BIN2H_DEPS)
+	./$(BIN2H_EXEC) $< $@ grub_mbr45cp
+grub_mbr45cnp.h: grldr45cnp.mbr $(BIN2H_DEPS)
+	./$(BIN2H_EXEC) $< $@ grub_mbr45cnp
+grub_mbr46ap.h: grldr46ap.mbr $(BIN2H_DEPS)
+	./$(BIN2H_EXEC) $< $@ grub_mbr46ap
+grub_mbr46anp.h: grldr46anp.mbr $(BIN2H_DEPS)
+	./$(BIN2H_EXEC) $< $@ grub_mbr46anp
+grub_pbr46al.h: grldr46al.pbr $(BIN2H_DEPS)
+	./$(BIN2H_EXEC) $< $@ grub_pbr46al

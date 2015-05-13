@@ -1,11 +1,18 @@
+2015-01
+	* implemented Grub4Dos 0.4.6a
+	* many improvements to the GUI
+
 2012-02-15
 	* 更新GRLDR.MBR代码。
 	* 修正GUI不能显示超过10个磁盘的BUG。
+
 2008-12-30
 	* 使用了最新版的GRLDR.MBR代码.
 	* 修改了对应新版的GRLDR.MBR热键写入位置.
+
 2008-12-15
 	* 添加一个新的参数 --chs-no-tune同bootlace.com一样.
+
 2008-12-13 version 1.1 (by chenall)
 	* 使用了GRUB4DOS源码里面新的GRLDR.MBR代码.
 	* 修正改名 (只能用于最新版GRLDR).

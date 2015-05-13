@@ -25,12 +25,16 @@ extern "C" {
 
 #define FST_OTHER		0
 #define FST_MBR			1
-#define FST_MBR2		2
-#define FST_FAT16		3
-#define FST_FAT32		4
-#define FST_NTFS		5
-#define FST_EXT2		6
-#define FST_EXFAT		7
+#define FST_MBR_FORCE_LBA		2
+#define FST_MBR_BAD	4
+#define FST_GPT		5
+#define FST_FAT16		6
+#define FST_FAT32		7
+#define FST_NTFS		8
+#define FST_EXT2		9
+#define FST_EXT3		10
+#define FST_EXT4		11
+#define FST_EXFAT		12
 
 extern int mbr_nhd, mbr_spt;
 int get_fstype (unsigned char*);
