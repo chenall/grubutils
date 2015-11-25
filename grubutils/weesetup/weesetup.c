@@ -116,7 +116,7 @@ static void open_dev( device_t *dev, char *name )
    dev->name = name;
    if( *name == '(' )
    {
-      dev->xd = xd_open( name, 1 );
+      dev->xd = xd_open( name, 1, 1 );
       dev->fd = -1;
    }
    else
@@ -263,7 +263,7 @@ void list_devs (void)
       xd_t *xd;
 
       sprintf (name, "(hd%d)", i);
-      xd = xd_open (name, 1);
+      xd = xd_open ( name, 1, 1 );
       if (xd)
       {
          unsigned long size;
@@ -874,7 +874,7 @@ int main( int argc, char *argv[] )
 
    fs = get_fstype( (unsigned char*)read_data );
 
-   if( fs == FST_MBR2 )
+   if( fs == FST_MBR )
    {
       if( install_flag & FLAG_FORCE )
       {
