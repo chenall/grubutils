@@ -1,26 +1,33 @@
-find --set-root /boot/grub/grldr /boot/grub/grldr
+find --set-root /boot/grub/grldr
+/boot/grub/grldr
 timeout 1
 default 0
 
-title 1. Windows
-find --set-root --active command +1
-find --set-root /bootmgr /bootmgr
-find --set-root /ntldr /ntldr
+title 1. DOS/Windows
+    find --set-root --active /bootmgr /bootmgr
+    find --set-root --active /ntldr /ntldr
+    find --set-root --active /io.sys /io.sys
+    find --set-root /bootmgr /bootmgr
+    find --set-root /ntldr /ntldr
+    find --set-root /io.sys /io.sys
 
-title 2. Grub4dos
-find --set-root /boot/grub/grldr /boot/grub/grldr
-find --set-root /boot/grub.exe /boot/grub.exe
-find --set-root /boot/grldr /boot/grldr
-find --set-root /grub.exe /grub.exe
-find --set-root /grldr /grldr
+title 2. GRUB4DOS
+    find --set-root /BOOT/GRUB/GRLDR /BOOT/GRUB/GRLDR
+    find --set-root /BOOT/GRUB.EXE /BOOT/GRUB.EXE
+    find --set-root /BOOT/GRLDR /BOOT/GRLDR
+    find --set-root /grldr /grldr
 
 title 3. Plop Boot Manager
-find --set-root /boot/grub/plpbt.bin /boot/grub/plpbt.bin
+    find --set-root /BOOT/GRUB/PLPBT.BIN /BOOT/GRUB/PLPBT.BIN
 
 title 4. Vboot
-find --set-root /vbootldr /vbootldr
+    find --set-root /vbootldr /vbootldr
 
 title 5. Burg
-find --set-root /buldr /buldr
+    find --set-root /buldr /buldr
 
+title 6. Previous MBR
+    (hd0)1+1
 
+title 7. Command Line
+    exit
