@@ -53,7 +53,8 @@ step 2:
 #define		PM1A_BIT_BLK	(pm1_ctr_tpy.pm1_ctr_reg_group.pm1a_blk)
 #define		PM1B_BIT_BLK	(pm1_ctr_tpy.pm1_ctr_reg_group.pm1b_blk)
 
-#define		G4D_ARG(x)		(memcmp((void*)&main - *(U_32*)(&main - 8), x, strlen(x)) == 0 ? 1 : 0)
+//#define		G4D_ARG(x)		(memcmp((void*)&main - *(U_32*)(&main - 8), x, strlen(x)) == 0 ? 1 : 0)
+#define		G4D_ARG(x)		(memcmp(arg, x, strlen(x)) == 0 ? 1 : 0)
 #define 	TABLE_CHECK32(addr,signature) 	(header_check32(((void*)(addr)), (signature)) \
 											&& check_sum(((void*)(addr)),(((struct ACPI_SDTH*)(addr))->length)))
 											
@@ -196,16 +197,11 @@ static struct	system_description_table_header *	dsdt_addr = NULL;
 static struct	simplify_fadt_table *				fadt_addr = NULL; 
 
 		 
-asm(ASM_BUILD_DATE); 
-/*///////////////////////////////////////////////////////////////////////////////////////////
-	a valid executable file/mode for grub4dos must end with these 8 bytes,
-	gcc treat the following lines as data and only it follow  global initialization .
-///////////////////////////////////////////////////////////////////////////////////////////*/
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
-
-int main (void)
+int main (char *arg,int flags)
 {
 	if (G4D_ARG("--help") || G4D_ARG("/?")) {
 		cls;

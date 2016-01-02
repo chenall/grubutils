@@ -19,19 +19,11 @@ struct realmode_regs {
 	unsigned long eflags; // as input and output
 };
 static unsigned long BCD2DEC(const char *bcd,int len);
-int GRUB = 0x42555247;/* this is needed, see the following comment. */
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
-asm(".long 0x534F4434");
-asm(ASM_BUILD_DATE);
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
 
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
+
 /*
  INT 1aH 03H: Set Time on Real-Time Clock
  Expects: AH    03H
@@ -54,12 +46,8 @@ asm(".long 0xBCBAA7BA");
 
                 CY (1) clock not operating or busy being updated
 */
-int test()
-{
-	return printf("Test");
-}
 
-static int main (char *arg,int flags)
+int main (char *arg,int flags)
 {
 	struct realmode_regs int_regs = {0,0,0,-1,0,0,0,0x200,-1,-1,-1,-1,-1,0xFFFF1ACD,-1,-1};
 	if (!*arg)

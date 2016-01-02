@@ -1,6 +1,7 @@
 /*
- *  GRUB  --  GRand Unified Bootloader
- *  Copyright (C) 1999,2000,2001,2002,2003,2004  Free Software Foundation, Inc.
+ *  fat  --  FAT file system utility for grub4dos.
+ *  Copyright (C) 2015  tinybit(tinybit@tom.com)
+ *  Copyright (C) 2010  chenall(chenall.cn@gmail.com)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,11 +35,12 @@
 /*
  * compile:
 
-gcc -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE fat.c ff.c -o fat.o
+ * gcc -Wl,--build-id=none -m32 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE -Wl,-Ttext -Wl,0 fat.c -o fat.o
 
- * disassemble:			objdump -d fat.out 
- * confirm no relocation:	readelf -r fat.out
- * generate executable:		objcopy -O binary fat.out fat
+ * disassemble:			objdump -d fat.o
+ * confirm no relocation:	readelf -r fat.o
+ * generate executable:		objcopy -O binary fat.o fat.tmp
+ * strip ending 00's:		sed -e '$s/\x00*$//' fat.tmp > fat
  *
  */
 /*
@@ -83,21 +85,11 @@ static char fat_err[][100]={
 	[FR_TOO_MANY_OPEN_FILES] = " (18) Number of open files > _FS_SHARE ",
 };
 #endif
-unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment. */
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
 
-//asm(".long 0x534F4434");
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
-
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
 int
 main (char *arg,int flags)
 {
@@ -753,4 +745,5 @@ DWORD get_fattime (void)
 #endif
 };
 
+#include "ff.c"
 

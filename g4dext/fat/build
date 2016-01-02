@@ -23,10 +23,12 @@ echo "#define _TIME_H $_TIME_H" >>fat_config.h
 echo "#define _TIME_M $_TIME_M" >>fat_config.h
 echo "#define _TIME_S $_TIME_S" >>fat_config.h
 echo "#define GET_FATTIME" >>fat_config.h
-gcc -I../../include/ -nostdlib -DASM_BUILD_DATE="\"$ASMDATE"\" -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE fat.c ff.c -o fat.o
-gcc -I../../include/ -DFAT_MINI -DASM_BUILD_DATE="\"$ASMDATE"\" -nostdlib -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE fat.c ff.c -o fatmini.o
-objcopy -O binary fat.o fat
-objcopy -O binary fatmini.o fatmini
+gcc -I../../include/ -DASM_BUILD_DATE="\"$ASMDATE"\" -m32 -mno-sse -nostdlib -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE -Wl,-Ttext -Wl,0 fat.c -o fat.o
+gcc -I../../include/ -DFAT_MINI -DASM_BUILD_DATE="\"$ASMDATE"\" -m32 -mno-sse -nostdlib -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE -Wl,-Ttext -Wl,0 fat.c -o fatmini.o
+objcopy -O binary fat.o fat.tmp
+objcopy -O binary fatmini.o fatmini.tmp
+sed -e '$s/\x00*$//' fat.tmp > fat
+sed -e '$s/\x00*$//' fatmini.tmp > fatmini
 rm fat*.o
 date=`date -u +%Y-%m-%d`
 zip -9 -r -q "../fat-$date.zip" fat fatmini

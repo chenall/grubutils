@@ -5,22 +5,6 @@
  */
 #include "grub4dos.h"
 
-int GRUB = 0x42555247;/* this is needed, see the following comment. */
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
-
-asm(".long 0x534F4434");
-
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
-
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
-
 #define vga ((unsigned short *)0xb8000)
 #define SNAKE 0x2efe
 #define SNAKEH 0xAefe
@@ -52,8 +36,11 @@ static int i,j,z;
 static unsigned long s;
 static unsigned long speed; //速度控制
 
-int
-main()
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
+
+int main (char *arg,int flags)
 {
 	//获取太概的延时设定.
 	unsigned long date,time,time1;

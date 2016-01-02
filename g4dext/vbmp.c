@@ -18,26 +18,14 @@ struct realmode_regs {
 	unsigned long cs; // code segment, as input
 	unsigned long eflags; // as input and output
 };
-int GRUB = 0x42555247;/* this is needed, see the following comment. */
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
-asm(".long 0x534F4434");
-asm(ASM_BUILD_DATE);
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
 
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
 int
-main ()
+main (char *arg,int flags)
 {
-	void *p = &main;
-	char *arg = p - (*(int *)(p - 8));
-	int flags = (*(int *)(p - 12));
 	/*
 	通过调用BIOS   10h替换系统字模来显示汉字   
 	入口:	ax=1100h

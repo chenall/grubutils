@@ -258,14 +258,11 @@ static struct cmd_list
   int (*func) (char *, int);	//对应的功能函数
   int flags;			//标志
 } *p_cmd_list = NULL;
-asm(".long 0x534F4434");
-asm(ASM_BUILD_DATE);
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
+
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
+
 int main(char *arg,int flags)
 {
 	if (*(int *)0x8278 < 20101124)

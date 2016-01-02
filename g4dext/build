@@ -36,9 +36,11 @@ for file in *.c;do
 			fi
 		fi
 		echo "build $file --> $OUT --> ./bin/${file%*.c}"
-		$CC -nostdlib -DASM_BUILD_DATE="\"$ASMDATE"\" -I../include/ -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -fPIE $file -o $OUT || continue
-		objcopy -O binary $OUT ./bin/${file%*.c} || continue
-		rm -f ./zip/${file%*.c}.zip
-		zip -9 -j -q "./zip/${file%*.c}-${DATE}.zip" ./bin/${file%*.c} ${file%*.c}-*.txt
+		$CC -nostdlib -DASM_BUILD_DATE="\"$ASMDATE"\" -I../include/ -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N $BUILDID -m32 -mno-sse -Wl,-Ttext -Wl,0 -fPIE $file -o $OUT || continue
+		objcopy -O binary $OUT ./bin/${file%*.c}.tmp || continue
+		sed -e '$s/\x00*$//' ./bin/${file%*.c}.tmp > ./bin/${file%*.c} || continue
+		rm -f ./zip/${file%*.c}.zip ./bin/${file%*.c}.tmp
+#		zip -9 -j -q "./zip/${file%*.c}-${DATE}.zip" ./bin/${file%*.c} ${file%*.c}-*.txt
+		zip -9 -j -q "./zip/${file%*.c}-${DATE}.zip" ./bin/${file%*.c}
 	fi
 done

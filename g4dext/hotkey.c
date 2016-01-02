@@ -1,6 +1,6 @@
 /*
  *  HOTKEY  --  hotkey functionality for use with grub4dos menu.
- *  Copyright (C) 2011  chenall(chenall.cn@gmail.com)
+ *  Copyright (C) 2015  chenall(chenall.cn@gmail.com)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@
 
 #include "grub4dos.h"
 #define DEBUG 0
-static int my_app_id = 0;/* this is needed, see the following comment. */
 typedef struct
 {
   unsigned short code[4];
@@ -174,7 +173,7 @@ static unsigned short allow_key[9] = {
 /*KEY_DOWN        */0x5000,
 /*KEY_NPAGE       */0x5100
 };
-
+static int my_app_id = 0;
 static int _checkkey_ = 0;
 static char keyname_buf[16];
 static char* str_upcase (char* str);
@@ -189,19 +188,12 @@ static int check_allow_key(unsigned short key);
  */
 static hkey_data_t hotkey_data = {0,{0,NULL}};//HOTKEY 数据保留区
 static int hotkey_cmd_flag = HOTKEY_MAGIC;//程序尾部标志
-asm(".string \"GRUB4DOS\"");
-#ifdef ASM_BUILD_DATE
-asm(ASM_BUILD_DATE);
-#endif
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
 
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
-static int main(char *arg,int flags,int flags1)
+int main(char *arg,int flags,int flags1)
 {
 	int i;
 	char *base_addr;
@@ -388,9 +380,8 @@ static int main(char *arg,int flags,int flags1)
 	if (!HOTKEY_FUNC)
 	{
 		int buff_len;
-		char *p;
-		p = (char *)&main;
-		buff_len = *(int*)(p-20);
+		char *p = (char *)&main;
+		buff_len = (int)&__BSS_END - (int)&main;
 		if (buff_len > 0x4000)//文件太大加载失败。限制hotkey程序不可以超过16KB。
 			return 0;
 		#if CHECK_F11
@@ -412,9 +403,9 @@ static int main(char *arg,int flags,int flags1)
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
 		HOTKEY_FUNC = HOTKEY_PROG_MEMORY;
 		//获取程序执行时的路径的文件名。
-		p = p-*(int*)(p-16);
-		strncat(p," hotkey",-1);
-		builtin_cmd("insmod",p,flags);
+		//p = p-*(int*)(p-16);
+		//strncat(p," hotkey",-1);
+		//builtin_cmd("insmod",p,flags);
 		i = ((int(*)(char*,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC);//获取HOTKEY数据位置并作一些初使化
 		if (debug > 0)
 		{

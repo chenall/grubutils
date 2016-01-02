@@ -6,6 +6,7 @@
 #define GRUB4DOS_2015_02_15
 #undef NULL
 #define NULL         ((void *) 0)
+#define UNIFONT_START		0x1800000
 
 /* Error codes (descriptions are in common.c) */
 typedef enum

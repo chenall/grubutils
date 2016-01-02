@@ -1,33 +1,35 @@
 /*
- *	GRUB	--	GRand Unified Bootloader
- *	Copyright (C) 1999,2000,2001,2002,2003,2004	 Free Software Foundation, Inc.
+ *  chkpci  --  report information about PCI devices.
+ *  Copyright (C) 2015  tinybit(tinybit@tom.com)
+ *  Copyright (C) 2010  chenall(chenall.cn@gmail.com)
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- *	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
 
 /*
  * compile:
 
-gcc -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE chkpci.c
+ * gcc -Wl,--build-id=none -m32 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE -Wl,-Ttext -Wl,0 chkpci.c -o chkpci.o
 
- * disassemble:			objdump -d a.out 
- * confirm no relocation:	readelf -r a.out
- * generate executable:		objcopy -O binary a.out chkpci
+ * disassemble:			objdump -d chkpci.o
+ * confirm no relocation:	readelf -r chkpci.o
+ * generate executable:		objcopy -O binary chkpci.o chkpci.tmp
+ * strip ending 00's:		sed -e '$s/\x00*$//' chkpci.tmp > chkpci
  *
  */
+
 /*
  * to get this source code & binary: http://grub4dos-chenall.google.com
  * For more information.Please visit web-site at http://chenall.net
@@ -116,22 +118,11 @@ static struct pci_dev *PCI = NULL;
 static char *FILE_BUF = NULL;
 #endif
 static int out_fmt = 0;
-int GRUB = 0x42555247;/* this is needed, see the following comment. */
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
 
-asm(".long 0x534F4434");
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
-
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
- 
 int chkpci_func (char *,int);
 
 int main (char *arg,int flags)
@@ -177,7 +168,7 @@ unsigned long pcibios_init(int flags)
 		printf("pcibios_init: Using configuration type 1\n");
 		return 1;
 	}
-	#if 0
+#if 0
 	outl(0xcf8,tmp);
 	outl(0xcfb,0);
 	outl(0xcf8,0);
@@ -189,7 +180,7 @@ unsigned long pcibios_init(int flags)
 		return 2;
 	}
 	printf("pcibios_init: Not supported chipset for direct PCI access !\n");
- #endif
+#endif
 	return 0;
 }
 
@@ -699,8 +690,8 @@ char *find_pci(char *hwIDs,int *flags)
 	return NULL;
 }
 
-char *f_pos;
-char *ms_name;
+static char *f_pos;
+static char *ms_name;
 char *find_section(char *section)
 {
 	char *f;

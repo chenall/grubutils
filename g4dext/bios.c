@@ -1,6 +1,5 @@
 #include "grub4dos.h"
 
-unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment. */
 struct realmode_regs {
 	unsigned long edi; // as input and output
 	unsigned long esi; // as input and output
@@ -25,20 +24,12 @@ static void outb(unsigned short port, char val);
 static unsigned short inw(unsigned short port);
 static void outw(unsigned short port, unsigned short val);
 static void outl(unsigned short port, int val);
-/* gcc treat the following as data only if a global initialization like the
- * above line occurs.
- */
 
-/* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
+/* this is needed, see the comment in grubprog.h */
+#include "grubprog.h"
+/* Do not insert any other asm lines here. */
 
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out
- * file. Do not insert any other asm lines here.
- */
-
-static int main(char *arg,int flags)
+int main(char *arg,int flags)
 {
 	struct realmode_regs int_regs = {0,0,0,-1,0,0,0,0,-1,-1,-1,-1,-1,0,-1,-1};
 	unsigned long long ll;
