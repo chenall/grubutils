@@ -214,6 +214,12 @@ typedef enum
 #define open ((int (*)(char *))((*(int **)0x8300)[26]))
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned long))((*(int **)0x8300)[27]))
 #define close ((void (*)(void))((*(int **)0x8300)[28]))
+#define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned long write))((*(int **)0x8300)[31]))
+
+/*
+int
+devread (unsigned long drive, unsigned long sector, unsigned long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write)
+*/
 #define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))((*(int **)0x8300)[32]))
 /*
  * int
@@ -239,10 +245,7 @@ typedef enum
 #define SKIP_NONE		0
 #define SKIP_WITH_TERMINATE	0x200
 
-/*
-int
-devread (unsigned long drive, unsigned long sector, unsigned long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write)
-*/
+
 #define grub_dir ((int (*)(char *))((*(int **)0x8300)[61]))
 #define print_a_completion ((void (*)(char *, int))((*(int **)0x8300)[62]))
 #define print_completions ((int (*)(int, int))((*(int **)0x8300)[63]))
