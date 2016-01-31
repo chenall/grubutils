@@ -10146,9 +10146,9 @@ ENTRY(list_partitions)
 	cmpw	$0xAA55, 64(%esi)
 	jne	9f
 
-	cmpl	$0xff, ABS(EXT_C(current_slice))
-	je	100f
-	movl	$0xFF, ABS(EXT_C(current_slice))
+//	cmpl	$0xff, ABS(EXT_C(current_slice))
+//	je	100f
+//	movl	$0xFF, ABS(EXT_C(current_slice))
 	cmpb	$0xee, 4(%esi)
 	jne	100f
 	movl	$1,%eax
