@@ -1,3 +1,4 @@
+SHELL=/bin/bash
 SRC_C := builtins.c disk_io.c fsys_ext2fs.c fsys_fat.c fsys_ntfs.c
 SRC_S := asm.S wee63start.S
 BUILDROOT := .
