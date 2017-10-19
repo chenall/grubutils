@@ -38,9 +38,9 @@ extra_CLEAN = mbr.h
 
 weesetup.o: mbr.h
 weesetup$(EXEEXT): weesetup.o xdio.o utils.o
-	$(CC) $(CFLAGS) -s -obin/$@ $^
+	$(CC) $(CFLAGS) -s -o$@ $^
 	rm *.o *.d mbr.h
 mbr.h: wee63.mbr $(BIN2H_DEPS)
-	./$(BIN2H_EXEC) $< $@ wee63_mbr
+	$(BIN2H_EXEC) $< $@ wee63_mbr
 wee63.mbr: nt6mbr.bin ../wee/wee63.mbr
-	./mkmbr
+	sh mkmbr
