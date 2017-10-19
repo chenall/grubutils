@@ -263,7 +263,7 @@ void list_devs (void)
       xd_t *xd;
 
       sprintf (name, "(hd%d)", i);
-      xd = xd_open ( name, 1, 1 );
+      xd = xd_open ( name, 1, 0 );
       if (xd)
       {
          unsigned long size;
