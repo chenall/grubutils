@@ -874,7 +874,7 @@ int main( int argc, char *argv[] )
 
    fs = get_fstype( (unsigned char*)read_data );
 
-   if( fs == FST_MBR )
+   if( fs == FST_MBR_BAD )
    {
       if( install_flag & FLAG_FORCE )
       {
