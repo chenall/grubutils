@@ -1,0 +1,8 @@
+*.o
+*.tmp
+*.mod
+umbr/bin2c
+umbr/umbr.h
+umbr/umbr
+g4dext/bin
+g4dext/zip
