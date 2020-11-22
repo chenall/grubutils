@@ -89,7 +89,8 @@ unsigned short *minifnt_flag = (unsigned short *)BASE_FONT_ADDR;
 int
 main (char *arg,int flags)
 {
-		if (strlen(arg) <= 0)
+	void *p = &main;
+	if (strlen(arg) <= 0)
 	{
 		return 1;
 	}
