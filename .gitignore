@@ -1,6 +1,7 @@
 *.o
 *.tmp
 *.mod
+*.zip
 umbr/bin2c
 umbr/umbr.h
 umbr/umbr
