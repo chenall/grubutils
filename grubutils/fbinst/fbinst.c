@@ -366,7 +366,7 @@ list_devs (void)
       xd_t *xd;
 
       sprintf (name, "(hd%d)", i);
-      xd = xd_open (name, 1);
+      xd = xd_open (name, 1, 0);
       if (xd)
 	{
 	  unsigned long size;
@@ -3353,7 +3353,7 @@ main (int argc, char **argv)
   if (i >= argc - 1)
     quit ("no device name or command");
 
-  xd = xd_open (argv[i], 1);
+  xd = xd_open (argv[i], 1, 0);
   if (! xd)
     quit ("open %s fails", argv[i]);
 
