@@ -34,7 +34,7 @@ int main(int argc,char *argv[])
         fwrite(buff,1,n,f_mod);
     }
     else
-        printf("Err read file %s,%x\n",argv[i],n);
+        printf("Err read file %s,%lx\n",argv[i],n);
 
     fclose(fp);
   }
