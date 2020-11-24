@@ -1,0 +1,12 @@
+*.o
+*.tmp
+*.mod
+*.zip
+*.mbr
+umbr/bin2c
+umbr/umbr.h
+umbr/umbr
+g4dext/bin
+g4dext/zip
+grubutils/wee/stage2_size.h
+grubutils/wee/wee127/stage2_size.h

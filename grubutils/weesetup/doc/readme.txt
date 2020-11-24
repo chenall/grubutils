@@ -4,7 +4,7 @@
 
 weesetup是为了方便安装wee63.mbr而写的程序。支持自定义脚本。
 
-注意： 如果你的biod不支持EBIOS请不要安装（一般情况下较新的电脑都会支持），具体原因请看下面的WEE说明。
+注意： 如果你的bios不支持EBIOS请不要安装（一般情况下较新的电脑都会支持），具体原因请看下面的WEE说明。
 
    WEE access disk sectors only using EBIOS(int13/AH=42h), and never using
    CHS mode BIOS call(int13/AH=02h). So, if the BIOS does not support EBIOS
