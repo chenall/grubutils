@@ -16,15 +16,15 @@
 //在此定义静态变量、结构。不能包含全局变量，否则编译可以通过，但是不能正确执行。
 //不能在main前定义子程序，在main后可以定义子程序。
 static grub_size_t g4e_data = 0;
-static void EFIAPI get_G4E_image(void);
+static void get_G4E_image(void);
 
 /* 这是必需的，请参阅grubprog.h中的注释 */
 #include <grubprog.h>
 /* 请勿在此处插入任何其他asm行 */
 //不能包含子程序，不能包含全局变量，否则编译可以通过，但是不能正确执行。
-static int EFIAPI main(char *arg,int key);
-static int EFIAPI main(char *arg,int key)
-{ 
+static int main(char *arg,int key);
+static int main(char *arg,int key)
+{
   get_G4E_image();
   if (! g4e_data)
     return 0;
@@ -32,10 +32,10 @@ static int EFIAPI main(char *arg,int key)
   return printf ("%s\n",arg);
 }
 
-static void EFIAPI get_G4E_image(void)
+static void get_G4E_image(void)
 {
   grub_size_t i;
-  
+
   //在内存0-0x9ffff, 搜索特定字符串"GRUB4EFI"，获得GRUB_IMGE
   for (i = 0x9F100; i >= 0; i -= 0x1000)
   {
