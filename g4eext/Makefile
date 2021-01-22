@@ -6,9 +6,17 @@ MKDIR   := mkdir
 
 DATE = $(shell date -u +%Y-%m-%d)
 
+GCCVERSIONGTEQ5 := $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
+
 CFLAGS := -Wl,--build-id=none -m64 -mno-sse -nostdlib \
           -fno-zero-initialized-in-bss -fno-function-cse \
-          -fno-jump-tables -Wl,-N -fPIE
+          -fno-jump-tables -Wl,-N
+
+ifeq "$(GCCVERSIONGTEQ5)" "1"
+	CFLAGS += -no-pie
+else
+	CFLAGS += -fPIE
+endif
 
 OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c))
 MODULES := $(patsubst %.c,%.mod,$(wildcard *.c))
