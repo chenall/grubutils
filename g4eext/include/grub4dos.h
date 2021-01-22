@@ -7,7 +7,6 @@
 #define GRUB4DOS_2015_02_15
 #undef NULL
 #define NULL         ((void *) 0)
-//#define	IMG(x)	((x) - 0x8200 + grub_image + 0x400)
 #define	IMG(x)	((x) - 0x8200 + g4e_data)
 #define	SYSVAR(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
 #define	SYSVAR_2(x)	(*(unsigned long long **)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
@@ -216,6 +215,7 @@ typedef enum
 #define fsys_type (SYSVAR(21))
 #define NUM_FSYS (SYSVAR(22))
 #define graphics_inited (SYSVAR(23))
+#define BASE_ADDR ((char *)(SYSVAR(24)))
 #define fontx (SYSVAR(26))
 #define fonty (SYSVAR(27))
 #define graphics_CURSOR (SYSVAR(28))
@@ -259,7 +259,7 @@ typedef enum
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned long))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
 #define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned long write))(SYSFUN(31)))
-#define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))(SYSFUN(0x8300,32,int)))
+#define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))(SYSFUN(32)))
 #define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
 #define next_partition ((int (*)(void))(SYSFUN(34)))
 #define open_device ((int (*)(void))(SYSFUN(35)))
@@ -269,7 +269,7 @@ typedef enum
 #define hexdump ((void (*)(unsigned long long,char*,int))(SYSFUN(42)))
 #define skip_to ((char *(*)(int after_equal, char *cmdline))(SYSFUN(43)))
 #define builtin_cmd ((int (*)(char *cmd, char *arg, int flags))(SYSFUN(44)))
-#define get_datetime ((void (*)(unsigned long *date, unsigned long *time))(SYSFUN(45)))
+#define get_datetime ((void (*)(struct grub_datetime *datetime))(SYSFUN(45)))
 #define find_command ((struct builtin *(*)(char *))(SYSFUN(46)))
 #define zalloc ((void *(*)(unsigned long))(SYSFUN(49)))
 #define malloc ((void *(*)(unsigned long))(SYSFUN(50)))
@@ -399,20 +399,20 @@ typedef struct grub_efi_device_path grub_efi_device_path_t;
 
 struct drive_map_slot
 {
-	/* Remember to update DRIVE_MAP_SLOT_SIZE once this is modified.
-	 * The struct size must be a multiple of 4.
-	 */
-	unsigned char from_drive;
-	unsigned char to_drive;						/* 0xFF indicates a memdrive */
-	unsigned char from_log2_sector;
-	unsigned char to_log2_sector;
-	unsigned char fragment;
-	unsigned char read_only;
-	unsigned short to_block_size;
-	unsigned long long start_sector;
-	unsigned long long sector_count;
-	void *from_handle;
-	void *dp;
+ /* Remember to update DRIVE_MAP_SLOT_SIZE once this is modified.
+  * The struct size must be a multiple of 4.
+  */
+  unsigned char from_drive;
+  unsigned char to_drive;						/* 0xFF indicates a memdrive */
+  unsigned char from_log2_sector;
+  unsigned char to_log2_sector;
+  unsigned char fragment;
+  unsigned char read_only;
+  unsigned short to_block_size;
+  unsigned long long start_sector;
+  unsigned long long sector_count;
+  void *from_handle;
+  void *dp;
   void *block_io;
   void *media;
 };
@@ -481,6 +481,17 @@ struct builtin
   char *short_doc;
   /* The long version of the documentation.  */
   char *long_doc;
+};
+
+struct grub_datetime
+{
+  unsigned short year;
+  unsigned char month;
+  unsigned char day;
+  unsigned char hour;
+  unsigned char minute;
+  unsigned char second;
+  unsigned char pad1;
 };
 
 //UEFI 函数调用约定
