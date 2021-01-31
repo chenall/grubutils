@@ -18,8 +18,8 @@ else
 	CFLAGS += -fPIE
 endif
 
-OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c))
-MODULES := $(patsubst %.c,%.mod,$(wildcard *.c))
+OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c)) fat/fat.o
+MODULES := $(patsubst %.c,%.mod,$(wildcard *.c)) fat/fat.mod
 
 .PHONY: all
 all: prepare $(MODULES)

@@ -162,32 +162,32 @@ typedef enum
 
 #define install_partition (*(unsigned long long *)IMG(0x8208))
 #define boot_drive (*(unsigned long long *)IMG(0x8280))
-#define pxe_yip (*(unsigned long *)IMG(0x8284))
-#define pxe_sip (*(unsigned long *)IMG(0x8288))
-#define pxe_gip (*(unsigned long *)IMG(0x828C))
+#define pxe_yip (*(unsigned int *)IMG(0x8284))
+#define pxe_sip (*(unsigned int *)IMG(0x8288))
+#define pxe_gip (*(unsigned int *)IMG(0x828C))
 #define filesize (*(unsigned long long *)IMG(0x8290))
-#define saved_partition (*(unsigned long *)IMG(0x829C))
-#define saved_drive (*(unsigned long *)IMG(0x82A0))
-#define no_decompression (*(unsigned long *)IMG(0x82A4))
+#define saved_partition (*(unsigned int *)IMG(0x829C))
+#define saved_drive (*(unsigned int *)IMG(0x82A0))
+#define no_decompression (*(unsigned int *)IMG(0x82A4))
 #define part_start (*(unsigned long long *)IMG(0x82A8))
 #define part_length (*(unsigned long long *)IMG(0x82B0))
-#define fb_status (*(unsigned long *)IMG(0x82B8))
-#define is64bit (*(unsigned long *)IMG(0x82BC))
-#define ram_drive (*(unsigned long *)IMG(0x82CC))
+#define fb_status (*(unsigned int *)IMG(0x82B8))
+#define is64bit (*(unsigned int *)IMG(0x82BC))
+#define ram_drive (*(unsigned int *)IMG(0x82CC))
 #define rd_base (*(unsigned long long *)IMG(0x82D0))
 #define rd_size (*(unsigned long long *)IMG(0x82D8))
-#define addr_system_functions (*(unsigned long *)IMG(0x8300))	//地址
-#define free_mem_start (*(unsigned long *)IMG(0x82F0))
-#define free_mem_end (*(unsigned long *)IMG(0x82F4))
-#define saved_mmap_addr (*(unsigned long *)IMG(0x82F8))
-#define saved_mmap_length (*(unsigned long *)IMG(0x82FB))
+#define addr_system_functions (*(unsigned int *)IMG(0x8300))	//地址
+#define free_mem_start (*(unsigned int *)IMG(0x82F0))
+#define free_mem_end (*(unsigned int *)IMG(0x82F4))
+#define saved_mmap_addr (*(unsigned int *)IMG(0x82F8))
+#define saved_mmap_length (*(unsigned int *)IMG(0x82FB))
 #define errnum (*(grub_error_t *)IMG(0x8314))
-#define current_drive (*(unsigned long *)IMG(0x8318))
-#define current_partition (*(unsigned long *)IMG(0x831C))
+#define current_drive (*(unsigned int *)IMG(0x8318))
+#define current_partition (*(unsigned int *)IMG(0x831C))
 #define filemax (*(unsigned long long *)IMG(0x8320))
 #define filepos (*(unsigned long long *)IMG(0x8328))
 #define debug (*(int *)IMG(0x8330))
-#define current_slice (*(unsigned long *)IMG(0x8334))
+#define current_slice (*(unsigned int *)IMG(0x8334))
 #define buf_track	(*(unsigned long long *)IMG(0x8340))
 #define buf_drive	(*(int *)IMG(0x8348))
 
@@ -256,10 +256,10 @@ typedef enum
 #define memmove ((void *(*)(void *to, const void *from, int len))(SYSFUN(23)))
 #define memset ((void *(*)(void *start, int c, int len))(SYSFUN(24)))
 #define open ((int (*)(char *))(SYSFUN(26)))
-#define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned long))(SYSFUN(27)))
+#define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned int))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
-#define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned long write))(SYSFUN(31)))
-#define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned long write))(SYSFUN(32)))
+#define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned int write))(SYSFUN(31)))
+#define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned int write))(SYSFUN(32)))
 #define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
 #define next_partition ((int (*)(void))(SYSFUN(34)))
 #define open_device ((int (*)(void))(SYSFUN(35)))
@@ -271,19 +271,19 @@ typedef enum
 #define builtin_cmd ((int (*)(char *cmd, char *arg, int flags))(SYSFUN(44)))
 #define get_datetime ((void (*)(struct grub_datetime *datetime))(SYSFUN(45)))
 #define find_command ((struct builtin *(*)(char *))(SYSFUN(46)))
-#define zalloc ((void *(*)(unsigned long))(SYSFUN(49)))
-#define malloc ((void *(*)(unsigned long))(SYSFUN(50)))
+#define zalloc ((void *(*)(unsigned int))(SYSFUN(49)))
+#define malloc ((void *(*)(unsigned int))(SYSFUN(50)))
 #define free ((void (*)(void *ptr))(SYSFUN(51)))
-#define realmode_run ((int (*)(long regs_ptr))(SYSFUN(53)))
+#define realmode_run ((int (*)(int regs_ptr))(SYSFUN(53)))
 #define grub_dir ((int (*)(char *))(SYSFUN(61)))
 #define print_a_completion ((void (*)(char *, int))(SYSFUN(62)))
 #define print_completions ((int (*)(int, int))(SYSFUN(63)))
-#define lba_to_chs ((void (*)(unsigned long lba, unsigned long *cl, unsigned long *ch, unsigned long *dh))(SYSFUN(64)))
+#define lba_to_chs ((void (*)(unsigned int lba, unsigned int *cl, unsigned int *ch, unsigned int *dh))(SYSFUN(64)))
 #define probe_bpb ((int (*)(struct master_and_dos_boot_sector *BS))(SYSFUN(65)))
-#define probe_mbr ((int (*)(struct master_and_dos_boot_sector *BS, unsigned long start_sector1, unsigned long sector_count1, unsigned long part_start1))(SYSFUN(66)))
-#define unicode_to_utf8 ((unsigned long (*)(unsigned short *, unsigned char *, unsigned long))(SYSFUN(67)))
-#define rawread ((int (*)(unsigned long, unsigned long long, unsigned long, unsigned long long, unsigned long long, unsigned long))(SYSFUN(68,int)))
-#define rawwrite ((int (*)(unsigned long, unsigned long, char *))(SYSFUN(69)))
+#define probe_mbr ((int (*)(struct master_and_dos_boot_sector *BS, unsigned int start_sector1, unsigned int sector_count1, unsigned int part_start1))(SYSFUN(66)))
+#define unicode_to_utf8 ((unsigned int (*)(unsigned short *, unsigned char *, unsigned int))(SYSFUN(67)))
+#define rawread ((int (*)(unsigned int, unsigned long long, unsigned int, unsigned long long, unsigned long long, unsigned int))(SYSFUN(68,int)))
+#define rawwrite ((int (*)(unsigned int, unsigned int, char *))(SYSFUN(69)))
 #define setcursor ((int (*)(int))(SYSFUN(70)))
 #define tolower ((int (*)(int))(SYSFUN(71)))
 #define isspace ((int (*)(int))(SYSFUN(72)))
@@ -292,7 +292,7 @@ typedef enum
 #define envi_cmd ((int (*)(const char*, char *const, int))(SYSFUN(75)))
 
 /* strncmpx 增强型字符串比较函数 by chenall 2011-12-13
-	int strncmpx(const char *s1,const char *s2, unsigned long n, int case_insensitive)
+	int strncmpx(const char *s1,const char *s2, unsigned int n, int case_insensitive)
 	比较两个字符串s1,s2.长度: n,
 	如果n等于0，则只比较到字符串结束位置。否则比较指定长度n.不管字符串是否结束。
 	如果case_insensitive非0，比较字母时不区分大小写。
@@ -302,7 +302,7 @@ typedef enum
 		当s1=s2时，返回值=0
 		当s1>s2时，返回值>0
 */
-#define strncmpx ((int (*)(const char*, const char*, unsigned long,int))(SYSFUN(76)))
+#define strncmpx ((int (*)(const char*, const char*, unsigned int,int))(SYSFUN(76)))
 /*
 	以下几个字符串比较都是使用strncmpx来实现
 */
@@ -337,8 +337,8 @@ struct geometry
   unsigned long long total_sectors;
   /* Device sector size */
   unsigned int sector_size;
-	/* Power of sector size 2 */
-	unsigned int log2_sector_size;
+  /* Power of sector size 2 */
+  unsigned int log2_sector_size;
 };
 
 /* fsys.h */
@@ -346,10 +346,10 @@ struct fsys_entry
 {
   char *name;
   int (*mount_func) (void);
-  unsigned long (*read_func) (unsigned long long buf, unsigned long long len, unsigned long write);
+  unsigned int (*read_func) (unsigned long long buf, unsigned long long len, unsigned int write);
   int (*dir_func) (char *dirname);
   void (*close_func) (void);
-  unsigned long (*embed_func) (unsigned long *start_sector, unsigned long needed_sectors);
+  unsigned int (*embed_func) (unsigned int *start_sector, unsigned int needed_sectors);
 };
 /* fsys.h */
 
@@ -366,9 +366,9 @@ struct master_and_dos_boot_sector {
 /* 16 */ unsigned short sectors_per_fat __attribute__ ((packed));/* FAT32=0, NTFS=0, FAT12/16=non-zero */
 /* 18 */ unsigned short sectors_per_track __attribute__ ((packed));/* range from 1 to 63 */
 /* 1A */ unsigned short total_heads __attribute__ ((packed));/* range from 1 to 256 */
-/* 1C */ unsigned long hidden_sectors __attribute__ ((packed));/* any value */
-/* 20 */ unsigned long total_sectors_long __attribute__ ((packed));/* FAT32=non-zero, NTFS=0, FAT12/16=any */
-/* 24 */ unsigned long sectors_per_fat32 __attribute__ ((packed));/* FAT32=non-zero, NTFS=any, FAT12/16=any */
+/* 1C */ unsigned int hidden_sectors __attribute__ ((packed));/* any value */
+/* 20 */ unsigned int total_sectors_long __attribute__ ((packed));/* FAT32=non-zero, NTFS=0, FAT12/16=any */
+/* 24 */ unsigned int sectors_per_fat32 __attribute__ ((packed));/* FAT32=non-zero, NTFS=any, FAT12/16=any */
 /* 28 */ unsigned long long total_sectors_long_long __attribute__ ((packed));/* NTFS=non-zero, FAT12/16/32=any */
 /* 30 */ char dummy2[0x18e];
 
@@ -380,8 +380,8 @@ struct master_and_dos_boot_sector {
 	/* +04 */ unsigned char system_indicator;
 	/* +05 */ unsigned char end_head;
 	/* +06 */ unsigned short end_sector_cylinder __attribute__ ((packed));
-	/* +08 */ unsigned long start_lba __attribute__ ((packed));
-	/* +0C */ unsigned long total_sectors __attribute__ ((packed));
+	/* +08 */ unsigned int start_lba __attribute__ ((packed));
+	/* +0C */ unsigned int total_sectors __attribute__ ((packed));
 	/* +10 */
     } P[4];
 /* 1FE */ unsigned short boot_signature __attribute__ ((packed));/* 0xAA55 */
@@ -399,22 +399,22 @@ typedef struct grub_efi_device_path grub_efi_device_path_t;
 
 struct drive_map_slot
 {
- /* Remember to update DRIVE_MAP_SLOT_SIZE once this is modified.
-  * The struct size must be a multiple of 4.
-  */
-  unsigned char from_drive;
-  unsigned char to_drive;						/* 0xFF indicates a memdrive */
-  unsigned char from_log2_sector;
-  unsigned char to_log2_sector;
-  unsigned char fragment;
-  unsigned char read_only;
-  unsigned short to_block_size;
-  unsigned long long start_sector;
-  unsigned long long sector_count;
-  void *from_handle;
-  void *dp;
-  void *block_io;
-  void *media;
+	/* Remember to update DRIVE_MAP_SLOT_SIZE once this is modified.
+	 * The struct size must be a multiple of 4.
+	 */
+	unsigned char from_drive;
+	unsigned char to_drive;						/* 0xFF indicates a memdrive */
+	unsigned char from_log2_sector;
+	unsigned char to_log2_sector;
+	unsigned char fragment;
+	unsigned char read_only;
+	unsigned short to_block_size;
+	unsigned long long start_sector;
+	unsigned long long sector_count;
+	void *from_handle;
+	void *dp;
+	void *block_io;
+	void *media;
 };
 
 
@@ -438,7 +438,7 @@ struct term_entry
   /* The name of a terminal.  */
   const char *name;
   /* The feature flags defined above.  */
-  unsigned long flags;
+  unsigned int flags;
   unsigned short chars_per_line;
   /* Default for maximum number of lines if not specified */
   unsigned short max_lines;
@@ -458,7 +458,7 @@ struct term_entry
   void (*SETCOLORSTATE) (color_state state);
   /* Set the normal color and the highlight color. The format of each
      color is VGA's.  */
-  void (*SETCOLOR) (unsigned long state,unsigned long long color[]);
+  void (*SETCOLOR) (unsigned int state,unsigned long long color[]);
   /* Turn on/off the cursor.  */
   int (*SETCURSOR) (int on);
 
@@ -479,7 +479,7 @@ struct builtin
   int flags;
   /* The short version of the documentation.  */
   char *short_doc;
-  /* The long version of the documentation.  */
+  /* The int version of the documentation.  */
   char *long_doc;
 };
 
@@ -491,7 +491,7 @@ struct grub_datetime
   unsigned char hour;
   unsigned char minute;
   unsigned char second;
-  unsigned char pad1;
+	unsigned char pad1;
 };
 
 //UEFI 函数调用约定
@@ -506,5 +506,24 @@ struct grub_datetime
 #ifndef EFIAPI
   #define EFIAPI  // Substitute expresion to force C calling convention 
 #endif
+
+//#include <stdarg.h> 可变参数定义
+#ifndef _VA_LIST
+typedef __builtin_va_list va_list;
+#define _VA_LIST
+#endif
+#define va_start(ap, param) __builtin_va_start(ap, param)
+#define va_end(ap)          __builtin_va_end(ap)
+#define va_arg(ap, type)    __builtin_va_arg(ap, type)
+ 
+/* GCC always defines __va_copy, but does not define va_copy unless in c99 mode
+ * or -ansi is not specified, since it was not part of C90.
+ */
+#define __va_copy(d,s) __builtin_va_copy(d,s)
+#ifndef __GNUC_VA_LIST
+#define __GNUC_VA_LIST 1
+typedef __builtin_va_list __gnuc_va_list;
+#endif
+
 
 #endif
