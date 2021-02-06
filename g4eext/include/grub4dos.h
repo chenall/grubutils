@@ -12,6 +12,11 @@
 #define	SYSVAR_2(x)	(*(unsigned long long **)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
 #define	SYSFUN(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8300)) + (x<<3)))
 
+#define L( x ) _L ( x )
+#define _L( x ) L ## x
+
+typedef __WCHAR_TYPE__     wchar_t;
+
 typedef unsigned char      grub_uint8_t;
 typedef unsigned short     grub_uint16_t;
 typedef unsigned int       grub_uint32_t;
