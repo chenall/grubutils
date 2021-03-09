@@ -212,7 +212,7 @@ int main (char *arg,int flags)
 		--force-sci: possible need enable SCI for some acpi bios .\n\
 		--display  : display some ACPI message about system.\n\
 		--help  /? : display this message.\n\n\
-    NOTE: 	as defaut, only use ACPI for shutdow PC.\n\
+    NOTE: 	as defaut, only use ACPI for shutdown PC.\n\
 			and all options can only be a single option.\n\n\
   thanks:	Mr.xianglang, Mr.rockrock99, Mr.tinybit, Mr.chenall and you.\n\n\
      ver: - final\n\n");
