@@ -84,7 +84,7 @@ typedef struct device_s {
  \param bytes value to round up
  \return int uprounded value
 */
-inline int round2blocks( int bytes )
+static inline int round2blocks( int bytes )
 {
    bytes +=  (SECTOR_SIZE-1);
    bytes &= ~(SECTOR_SIZE-1);
@@ -98,7 +98,7 @@ inline int round2blocks( int bytes )
  \param bytes size in bytes
  \return int blocks used
 */
-inline int bytes2blocks( int bytes )
+static inline int bytes2blocks( int bytes )
 {
    return round2blocks( bytes ) >> 9;
 }
