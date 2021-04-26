@@ -386,7 +386,7 @@ extern unsigned long current_partition;
 
 extern int fsys_type;
 
-extern inline unsigned long log2_tmp (unsigned long word);
+//extern inline unsigned long log2_tmp (unsigned long word);
 extern unsigned long unicode_to_utf8 (unsigned short *filename, unsigned char *utf8, unsigned long n);
 
 extern unsigned long long part_start;

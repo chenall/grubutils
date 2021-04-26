@@ -34,7 +34,7 @@
 
 static int mapblock1, mapblock2;
 
-inline unsigned long
+static inline unsigned long
 log2_tmp (unsigned long word)
 {
   __asm__ ("bsfl %1,%0"
