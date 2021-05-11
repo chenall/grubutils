@@ -6,7 +6,7 @@ MKDIR   := mkdir
 
 DATE = $(shell date -u +%Y-%m-%d)
 
-GCCVERSIONGTEQ5 := $(shell expr `$cc -dumpversion | cut -f1 -d.` \>= 5)
+GCCVERSIONGTEQ5 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 5)
 
 CFLAGS := -Wl,--build-id=none -m64 -mno-sse -nostdlib \
           -fno-zero-initialized-in-bss -fno-function-cse \

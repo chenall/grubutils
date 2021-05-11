@@ -14,38 +14,19 @@ jobs:
     - name: 初始化
       run: |
         sudo -E apt-get -y install gcc-4.8 gcc-4.8-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev
-    - name: 编译 umbr
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 1
+    - name: 编译
       run: |
         make -C umbr
-
-    - name: 编译 GRUB4DOS 外部命令
-      run: |
         make -j -C g4dext
-    - name: 编译 GRUB4EFI 外部命令
-      run: |
         make -j -C g4eext
-
-#    - name: 编译 fbinst
-#      run: |
-#        make -C grubutils/fbinst
-#    - name: 编译 loadbin
-#      run: |
-#        make -C grubutils/loadbin
-#    - name: 编译 makemod
-#      run: |
-#        make -C grubutils/makemod
-#    - name: 编译 makerom
-#      run: |
-#        make -C grubutils/makerom
-#    - name: 编译 wee
-#      run: |
-#        make -C grubutils/wee
-#    - name: 编译 weesetup
-#      run: |
-#        make -C grubutils/weesetup
-#    - name: 压缩 grubutils
-#      run: |
-#        7z a grubutils.7z grubutils/fbinst/fbinst grubutils/loadbin/*.bin grubutils/makemod/makemod grubutils/makerom/makerom grubutils/weesetup/weesetup
+        make -C grubutils/fbinst
+        make -C grubutils/loadbin
+        make -C grubutils/makemod
+        make -C grubutils/makerom
+        make -C grubutils/wee
+        make -C grubutils/weesetup
+        7z a grubutils.7z grubutils/fbinst/fbinst grubutils/loadbin/*.bin grubutils/makemod/makemod grubutils/makerom/makerom grubutils/weesetup/weesetup
 
     - name: 上传
       uses: marvinpinto/action-automatic-releases@latest
@@ -57,4 +38,4 @@ jobs:
         files: |
             g4dext-*.zip
             g4eext-*.zip
-#            grubutils.7z
+            grubutils.7z
