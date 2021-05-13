@@ -1,5 +1,5 @@
-CC      := gcc
-OBJCOPY := objcopy
+CC      ?= gcc
+OBJCOPY ?= objcopy
 RM      := rm
 MV      := mv
 MKDIR   := mkdir
