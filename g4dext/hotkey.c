@@ -381,9 +381,8 @@ int main(char *arg,int flags,int flags1)
 	{
 		int buff_len;
 		char *p = (char *)&main;
-		buff_len = (int)&__BSS_END - (int)&main;
-		if (buff_len > 0x4000)//文件太大加载失败。限制hotkey程序不可以超过16KB。
-			return 0;
+//		buff_len = (unsigned int)&__BSS_END - (unsigned int)&main;
+		buff_len = 0x4000;
 		#if CHECK_F11
 		if (check_f11())//检测BIOS是否支持F11,F12热键，如果有支持直接使用getkey函数取得按键码
 		{

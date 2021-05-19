@@ -166,6 +166,7 @@ typedef enum
 
 
 #define install_partition (*(unsigned long long *)IMG(0x8208))
+#define HOTKEY_FUNC *(grub_size_t*)IMG(0x8260)    //热键函数
 #define boot_drive (*(unsigned long long *)IMG(0x8280))
 #define pxe_yip (*(unsigned int *)IMG(0x8284))
 #define pxe_sip (*(unsigned int *)IMG(0x8288))
@@ -195,7 +196,7 @@ typedef enum
 #define current_slice (*(unsigned int *)IMG(0x8334))
 #define buf_track	(*(unsigned long long *)IMG(0x8340))
 #define buf_drive	(*(int *)IMG(0x8348))
-
+#define menu_mem *(grub_size_t*)IMG(0x8388)       //菜单地址
 
 #define next_partition_drive		(SYSVAR(0))
 #define next_partition_dest		(SYSVAR(1))
@@ -232,7 +233,6 @@ typedef enum
 #define p_get_cmdline_str (SYSVAR(45))
 #define splashimage_loaded (SYSVAR(46))
 #define putchar_hooked (SYSVAR(47))
-#define menu_mem (SYSVAR(48))	//地址
 
 
 #define sprintf ((int (*)(char *, const char *, ...))(SYSFUN(0)))

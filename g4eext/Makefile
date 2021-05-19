@@ -1,5 +1,7 @@
-CC      ?= gcc
-OBJCOPY ?= objcopy
+ifeq ($(CC),cc)
+     CC := gcc
+endif
+OBJCOPY := objcopy
 RM      := rm
 MV      := mv
 MKDIR   := mkdir
