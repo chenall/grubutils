@@ -176,8 +176,7 @@ static unsigned short allow_key[9] = {
 static int my_app_id = 0;
 static int _checkkey_ = 0;
 static char keyname_buf[16];
-static char* str_upcase (char* str);
-static int get_keycode (char* key);
+static int get_keycode (char *key, int flags);
 static int get_key(void);
 static int check_hotkey(char **title,int flags);
 static int check_f11(void);
@@ -543,18 +542,6 @@ static int check_allow_key(unsigned short key)
 	return 0;
 }
 
-char *
-str_upcase (char *str)
-{
-  int i;
-
-  for (i = 0; str[i]; i++)
-    if ((str[i] >= 'a') && (str[i] <= 'z'))
-      str[i] -= 'a' - 'A';
-
-  return str;
-}
-
 static char inb(unsigned short port)
 {
 	char ret_val;
@@ -636,7 +623,7 @@ static int check_hotkey(char **title,int flags)
 		++arg;
 		sprintf(keyname_buf,"%.15s",arg);//最多复制15个字符
 		nul_terminate(keyname_buf);//在空格处截断
-		if ((code = (unsigned short)get_keycode(keyname_buf)))
+		if ((code = (unsigned short)get_keycode(keyname_buf,1)))
 		{
 			//设置新的菜单标题位置
 			arg+=strlen(keyname_buf);
@@ -666,14 +653,27 @@ static int check_hotkey(char **title,int flags)
 		if (*arg != ']')
 			return 0;
 		keyname_buf[i] = 0;
-		code = (unsigned short)get_keycode(keyname_buf);
+		code = (unsigned short)get_keycode(keyname_buf,0);
 		return code;
 	}
+  arg = *title;  //2021-05-22新功能。支持菜单中的任意英文字母作为热键。扫描菜单项中的'^',把其后的字母设置为热键
+  while (*arg)
+  {
+    if (*arg == '^')
+    {
+      ++arg;
+      keyname_buf[0] = *arg;
+      keyname_buf[1] = 0;
+      if ((code = (unsigned short)get_keycode(keyname_buf,0)))
+        return code;
+    }
+    arg++;
+  }
 	return 0;
 }
 
 static int
-get_keycode (char *key)
+get_keycode (char *key, int flags)
 {
   int idx, i;
   char *str;
@@ -702,6 +702,9 @@ get_keycode (char *key)
       idx = 3;
       str += 4;
     }
+
+  if (flags && !idx) // 2021-05-22不再支持类似 ^F!, ^w 等，排除之。
+    return 0;
   for (i = 0; key_table[i].name[0]; i++)
     {
       if (!stricmp(str,key_table[i].name))

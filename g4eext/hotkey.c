@@ -161,10 +161,8 @@ static unsigned short allow_key[9] = {	//方向键
 static int my_app_id = 0;
 static int _checkkey_ = 0;
 static char keyname_buf[16];
-static char* str_upcase (char* str);
-static int get_keycode (char* key);
+static int get_keycode (char *key, int flags);
 static int check_hotkey(char **title,int flags);
-char * str_upcase (char *str);
 static char *get_keyname (int code);
 static int check_allow_key(unsigned short key);
 /* gcc treat the following as data only if a global initialization like the		gcc仅在发生与上述行类似的全局初始化时才将以下内容视为数据。
@@ -509,19 +507,6 @@ static int check_allow_key(unsigned short key)
 	return 0;
 }
 
-char *
-str_upcase (char *str)	//小写转大写
-{
-  int i;
-
-  for (i = 0; str[i]; i++)
-    if ((str[i] >= 'a') && (str[i] <= 'z'))
-      str[i] -= 'a' - 'A';
-
-  return str;
-}
-
-
 /*
 	从菜单标题中提取热键代码
 	返回热键对应的按键码。
@@ -541,7 +526,7 @@ static int check_hotkey(char **title,int flags)
 		++arg;
 		sprintf(keyname_buf,"%.15s",arg);//最多复制15个字符
 		nul_terminate(keyname_buf);//在空格处截断
-		if ((code = (unsigned short)get_keycode(keyname_buf)))
+		if ((code = (unsigned short)get_keycode(keyname_buf,1)))
 		{
 			//设置新的菜单标题位置
 			arg+=strlen(keyname_buf);
@@ -571,14 +556,21 @@ static int check_hotkey(char **title,int flags)
 		if (*arg != ']')
 			return 0;
 		keyname_buf[i] = 0;
-		code = (unsigned short)get_keycode(keyname_buf);
+		code = (unsigned short)get_keycode(keyname_buf,0);
 		return code;
 	}
+  arg = *title;  //2021-05-22新功能。支持菜单中的任意英文字母作为热键。扫描菜单项中的'^',把其后的字母设置为热键
+  while (*arg)
+  {
+    if (*arg == '^') 
+      return *(arg+1) | 0x20;
+    arg++;
+  }
 	return 0;
 }
 
 static int
-get_keycode (char *key)	//获得键代码
+get_keycode (char *key, int flags)	//获得键代码
 {
   int idx, i;
   char *str;
@@ -593,10 +585,10 @@ get_keycode (char *key)	//获得键代码
 	}
   str = key;
   idx = 0;
-  if (!strnicmp (str, "shift", 5))
+  if (!strnicmp (str, "shift", 5))    //比较字符串s1和s2的前n个字符但不区分大小写
 	{
 		idx = 1;
-		str += 6;
+		str += 6;   //跳过shift+
 	}
   else if (!strnicmp (str, "ctrl", 4))
 	{
@@ -608,9 +600,12 @@ get_keycode (char *key)	//获得键代码
 		idx = 4;
 		str += 4;
 	}
-  for (i = 0; key_table[i].name[0]; i++)
+  
+  if (flags && !idx) // 2021-05-22不再支持类似 ^F!, ^w 等，排除之。
+    return 0;
+  for (i = 0; key_table[i].name[0]; i++)  //在键表中搜索'+'号后的字母
 	{
-		if (!stricmp(str,key_table[i].name))
+		if (!stricmp(str,key_table[i].name))  //比较字符串s1和s2。不区分大小写. 是shift+x, ctrl+x, alt+x 的组合.
 		{
 //			return key_table[i].code[idx];
 			return (int)key_table[i].code | idx << 24; 
