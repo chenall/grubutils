@@ -354,7 +354,14 @@ int main(char *arg,int flags,int flags1)
 	    printf("Hotkey for grub4dos by chenall,%s\n",__DATE__);
 	if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg))
 	{
-	    printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n\thotkey -A\tSelect the menu item with the first letter of the menu\n\thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\te.g.\n\t\t hotkey [F9] \"reboot\"\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n\n\tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n\n");
+    printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
+    printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
+    printf("      \thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
+    printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandlien\"\n");
+    printf("      \te.g.\ttitle [F4] Boot Win 8\n");
+    printf("      \te.g.\ttitle Boot ^Win 10\n\n");
+    printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
+    printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
 	}
 	hotkey_flags = 1<<15;
 	while (*arg == '-')
@@ -443,6 +450,8 @@ int main(char *arg,int flags,int flags1)
 		}
 		return -1;
 	    }
+
+test:
 	    key_code = check_hotkey(&arg,0);
     	    if (!key_code)
 		return 0;
@@ -456,22 +465,36 @@ int main(char *arg,int flags,int flags1)
 
 	    if (*arg == '"')
 	    {
-		cmd_len = strlen(arg);
-		++arg;
-		--cmd_len;
-		while(cmd_len--)
-		{
+#if 1
+      cmd_len = 0;
+      arg++;
+      char *p = arg;
+      while (*p++ != '"') //计算命令尺寸
+        cmd_len++;
+      *(--p) = 0; //把末尾的'"'变成0, 命令终止符
+#else
+			cmd_len = strlen(arg);
+			++arg;
+			--cmd_len;
+			while(cmd_len--)
+			{
 		    if (arg[cmd_len] == '"')
 		    {
     			arg[cmd_len] = 0;
 			break;
 		    }
 		}
-	    }
-	    cmd_len = strlen(arg) + 1;
-	    for(i=0;i<64;++i)
-	    {
-		if (!hkc[i].key_code)
+#endif
+		}
+
+#if 1
+    cmd_len++;  //命令尺寸加终止符
+#else
+		cmd_len = strlen(arg) + 1;
+#endif
+		for(i=0;i<64;++i)
+		{
+			if (!hkc[i].key_code)           //无键代码, 退出
 		    break;
 		if (hkc[i].key_code == key_code)
 		    exist_key = i;
@@ -490,13 +513,14 @@ int main(char *arg,int flags,int flags1)
 		printf("Max 64 hotkey cmds limit!");
 		return 0;
 	    }
-
+#if 0   //不能处理第二个中括号
 	    if (exist_key != -1)//已经存在
 	    {
 		if (strlen(hkc[exist_key].cmd) >= cmd_len)//新的命令长度没有超过旧命令长度
 		   i = -1;
 	    }
 	    else//新增热键
+#endif
 	    {
     		exist_key = i;
 		hkc[i].key_code = key_code;
@@ -524,7 +548,16 @@ int main(char *arg,int flags,int flags1)
 
 	    if (debug > 0)
 		printf("%d [%s] registered!\n",exist_key,get_keyname(key_code));
-	    return 1;
+    while (*arg >= ' ')  //检测终止符,回车换行
+			arg++;
+    if (*arg) //如果是回车换行,结束
+      return 1;
+    arg++;  //跳过终止符
+    while (*arg >= ' ' && *arg != '[') //探测中括号
+      arg++;
+    if (*arg == '[')
+      goto test;
+    return 1;
 	}
 	return 0;
 }
@@ -721,7 +754,7 @@ get_keyname (unsigned short code)
 {
   int i;
 
-  for (i = 0; key_table[i].name; i++)
+  for (i = 0; *(key_table[i].name); i++)
     {
       int j;
 
