@@ -13,20 +13,20 @@ jobs:
       uses: actions/checkout@v1
     - name: 初始化
       run: |
-        sudo -E apt-get -y install gcc-4.8 gcc-4.8-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev
+        sudo -E apt-get -y install gcc-4.8 gcc-4.8-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev gcc-mingw-w64-i686
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 1
     - name: 编译
       run: |
         make -C umbr
         make -j -C g4dext
         make -j -C g4eext
-        make -C grubutils/fbinst
+        make -C grubutils/fbinst OSTYPE=MINGW CC=i686-w64-mingw32-gcc
         make -C grubutils/loadbin
-        make -C grubutils/makemod
-        make -C grubutils/makerom
+        make -C grubutils/makemod OSTYPE=MINGW CC=i686-w64-mingw32-gcc
+        make -C grubutils/makerom OSTYPE=MINGW CC=i686-w64-mingw32-gcc
         make -C grubutils/wee
-        make -C grubutils/weesetup
-        7z a grubutils.7z grubutils/fbinst/fbinst grubutils/loadbin/*.bin grubutils/makemod/makemod grubutils/makerom/makerom grubutils/weesetup/weesetup
+        make -C grubutils/weesetup OSTYPE=MINGW CC=i686-w64-mingw32-gcc
+        7z a grubutils.7z grubutils/fbinst/fbinst.exe grubutils/loadbin/*.bin grubutils/makemod/makemod.exe grubutils/makerom/makerom.exe grubutils/makerom/*.bin grubutils/weesetup/weesetup.exe
 
     - name: 上传
       uses: marvinpinto/action-automatic-releases@latest

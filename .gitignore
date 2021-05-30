@@ -3,6 +3,7 @@
 *.mod
 *.zip
 *.mbr
+*.exe
 umbr/bin2c
 umbr/umbr.h
 umbr/umbr

@@ -7,7 +7,7 @@ int main(int argc,char *argv[])
   int i;
   FILE *fp;
   FILE *f_mod = fopen("grub4dos.mod","wb");
-  int ret;
+
   struct
   {
     char filename[12];

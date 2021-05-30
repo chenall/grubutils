@@ -62,13 +62,17 @@
 
 #endif
 
-#ifdef WIN32
+#if 0
 
 typedef struct _STORAGE_DEVICE_NUMBER {
   DEVICE_TYPE DeviceType;
   ULONG       DeviceNumber;
   ULONG       PartitionNumber;
 } STORAGE_DEVICE_NUMBER, *PSTORAGE_DEVICE_NUMBER;
+
+#endif
+
+#ifdef WIN32
 
 int
 get_disk (char drive, int rdwr, int lock)
