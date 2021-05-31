@@ -357,7 +357,7 @@ int main(char *arg,int flags,int flags1)
     printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
     printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
     printf("      \thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
-    printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandlien\"\n");
+    printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandline\"\n");
     printf("      \te.g.\ttitle [F4] Boot Win 8\n");
     printf("      \te.g.\ttitle Boot ^Win 10\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
@@ -736,7 +736,10 @@ get_keycode (char *key, int flags)
       str += 4;
     }
 
-  if (flags && !idx) // 2021-05-22不再支持类似 ^F!, ^w 等，排除之。
+  if (flags && !idx &&
+          (str[0] != 'F' && str[1] != '\0') ||
+          (str[0] == 'F' && (str[1] < '1' || str[1] > '9')) ||
+          (str[0] == 'F' && str[2] != '\0' && str[2] != '0' && str[2] != '1' && str[2] != '2'))
     return 0;
   for (i = 0; key_table[i].name[0]; i++)
     {
