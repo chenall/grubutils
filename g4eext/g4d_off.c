@@ -139,7 +139,7 @@ static int main (char *arg,int key)
   get_G4E_image ();
   if (! g4e_data)
     return 0;
-  st = (void *)*(grub_addr_t *)grub_efi_system_table;
+  st = grub_efi_system_table;
   if (G4D_ARG ("--help") || G4D_ARG ("/?"))
   {
     printf ("Usage: g4d_off [OPTION]\nOptions:\n");

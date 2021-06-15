@@ -30,7 +30,7 @@ static int main(char *arg,int key)
   if (! g4e_data)
     return 0;
   char uefi_ver[11];
-  efi_system_table_t *st = (void *)*(grub_addr_t *)grub_efi_system_table;
+  efi_system_table_t *st = grub_efi_system_table;
   grub_uint16_t uefi_major_rev = st->hdr.revision >> 16;
   grub_uint16_t uefi_minor_rev = st->hdr.revision & 0xffff;
   grub_uint8_t uefi_minor_1 = uefi_minor_rev / 10;

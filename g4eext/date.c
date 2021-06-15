@@ -31,7 +31,7 @@ static int main(char *arg,int key)
     return 0;
   efi_status_t status;
   struct efi_time tm;
-  efi_system_table_t *st = (void *)*(grub_addr_t *)grub_efi_system_table;
+  efi_system_table_t *st = grub_efi_system_table;
 
   status = st->runtime_services->get_time (&tm, 0);
 

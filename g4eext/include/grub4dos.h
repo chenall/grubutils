@@ -8,9 +8,9 @@
 #undef NULL
 #define NULL         ((void *) 0)
 #define	IMG(x)	((x) - 0x8200 + g4e_data)
-#define	SYSVAR(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
-#define	SYSVAR_2(x)	(*(unsigned long long **)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
-#define	SYSFUN(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8300)) + (x<<3)))
+#define	SYSVAR(x)	(*(unsigned long *)((*(unsigned long *)IMG(0x8308)) + (x<<3)))
+#define	SYSVAR_2(x)	(*(unsigned long **)((*(unsigned long *)IMG(0x8308)) + (x<<3)))
+#define	SYSFUN(x)	(*(unsigned long *)((*(unsigned long *)IMG(0x8300)) + (x<<3)))
 
 #define L( x ) _L ( x )
 #define _L( x ) L ## x
@@ -211,8 +211,8 @@ typedef enum
 #define quit_print		(SYSVAR(10))
 #define image   (SYSVAR(12))
 #define filesystem_type (SYSVAR(13))
-#define grub_efi_image_handle (SYSVAR(14))
-#define grub_efi_system_table (SYSVAR(15))
+#define grub_efi_image_handle ((void *)*SYSVAR_2(14))
+#define grub_efi_system_table ((void *)*SYSVAR_2(15))
 #define buf_geom ((struct geometry *)(SYSVAR(16)))
 #define tmp_geom ((struct geometry *)(SYSVAR(17)))
 #define term_table ((struct term_entry *)(SYSVAR(18)))			//地址
@@ -500,7 +500,7 @@ struct grub_datetime
 };
 
 //UEFI 函数调用约定
-#if !(i386)
+#ifndef __i386__
 #if (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)))||(defined(__clang__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 2)))
   #define EFIAPI __attribute__((ms_abi))
 #else
