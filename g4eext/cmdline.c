@@ -57,7 +57,7 @@ static int main (char *arg,int key)
     printf ("loaded image protocol not found.\n");
     return 0;
   }
-  /* UTF-8 U+0000 ~ U+007F 1 byte	 UTF-16 U+0000   ~ U+D7FF   2 bytes
+  /* UTF-8 U+0000 ~ U+007F 1 byte  UTF-16 U+0000   ~ U+D7FF   2 bytes
    *       U+0080 ~ U+07FF 2 bytes        U+E000   ~ U+FFFF   2 bytes
    *       U+0800 ~ U+FFFF 3 bytes        U+010000 ~ U+10FFFF 4 bytes
    */
@@ -73,7 +73,7 @@ static int main (char *arg,int key)
   if (!*arg)
     printf ("%s\n", cmdline);
   else
-    envi_cmd(arg, cmdline, 0);
+    envi_cmd (arg, cmdline, 0);
   free (cmdline);
   return 1;
 }
