@@ -41,7 +41,7 @@
 #define MAX_PART 26
 
 static int diskid_func (char *arg,int flags);
-typedef struct part_info {unsigned long id, part, start;} partinfo;
+typedef struct part_info {unsigned int id, part, start;} partinfo;
 
 static grub_size_t g4e_data = 0;
 static void get_G4E_image (void);
@@ -62,24 +62,24 @@ static int main (char *arg, int flags)
 static int get_partinfo(partinfo *PART_INFO)
 {
 	char mbr[512];
-	unsigned long part = 0xFFFFFF;
-	unsigned long start, len, offset, ext_offset1;
-	unsigned long type, entry1;
+	unsigned int part = 0xFFFFFF;
+	unsigned int start, len, offset, ext_offset1;
+	unsigned int type, entry1;
 	partinfo *PI;
-	unsigned long id;
+	unsigned int id;
 	/* Look for the partition.  */
   PI = PART_INFO;
   id = 0UL;
   while ((	next_partition_drive		= current_drive,
 		next_partition_dest		= 0xFFFFFF,
-		next_partition_partition	= (void *)&part,
-		next_partition_type		= (void *)&type,
-		next_partition_start		= (void *)&start,
-		next_partition_len		= (void *)&len,
-		next_partition_offset		= (void *)&offset,
-		next_partition_entry		= (void *)&entry1,
-		next_partition_ext_offset	= (void *)&ext_offset1,
-		next_partition_buf		= (void *)mbr,
+		next_partition_partition	= (unsigned long long)(void *)&part,
+		next_partition_type		= (unsigned long long)(void *)&type,
+		next_partition_start		= (unsigned long long)(void *)&start,
+		next_partition_len		= (unsigned long long)(void *)&len,
+		next_partition_offset		= (unsigned long long)(void *)&offset,
+		next_partition_entry		= (unsigned long long)(void *)&entry1,
+		next_partition_ext_offset	= (unsigned long long)(void *)&ext_offset1,
+		next_partition_buf		= (unsigned long long)(void *)mbr,
 		next_partition ()))
 	{
 	  if (type != PC_SLICE_TYPE_NONE
@@ -97,7 +97,7 @@ static int get_partinfo(partinfo *PART_INFO)
 	PI->id = 0;
 	errnum = ERR_NONE;
 
-	long i,j;
+	int i,j;
 	partinfo t_pi;
 /*接分区位置排序(Ghost Style)*/
 	for (i = 0; i < id; i++)
@@ -117,7 +117,7 @@ diskid_func (char *arg,int flags)
 {
   unsigned long long ret = 0;
   partinfo PART_INFO[MAX_PART];
-  unsigned long id;
+  unsigned int id;
 
   errnum = ERR_BAD_ARGUMENT;
   if (*arg && (memcmp(arg,"ret=",4) == 0))
@@ -133,8 +133,8 @@ diskid_func (char *arg,int flags)
   }
 	else if (memcmp(arg,"info",4) == 0)
 	{
-		unsigned long tmp_drive = saved_drive;
-		unsigned long tmp_partition = saved_partition;
+		unsigned int tmp_drive = saved_drive;
+		unsigned int tmp_partition = saved_partition;
 		char tmp[20];
 		for (id=0;id<(*((char *)0x475));)
 		{
@@ -271,7 +271,7 @@ diskid_func (char *arg,int flags)
 	/* Look for the partition.  */
 	id = get_partinfo(PART_INFO);
 /*获取指定分区对应的ID*/	
-	long i;
+	int i;
 	for (i=0UL;i<id;++i)
 		if (PART_INFO[i].part == current_partition)
 		{

@@ -8,9 +8,9 @@
 #undef NULL
 #define NULL         ((void *) 0)
 #define	IMG(x)	((x) - 0x8200 + g4e_data)
-#define	SYSVAR(x)	(*(unsigned long *)((*(unsigned long *)IMG(0x8308)) + (x<<3)))
-#define	SYSVAR_2(x)	(*(unsigned long **)((*(unsigned long *)IMG(0x8308)) + (x<<3)))
-#define	SYSFUN(x)	(*(unsigned long *)((*(unsigned long *)IMG(0x8300)) + (x<<3)))
+#define	SYSVAR(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8308)) + (x<<3)))
+#define	SYSVAR_2(x)	(*(unsigned long long *)(*(unsigned long long *)((*(unsigned long long *)IMG(0x8308)) + (x<<3))))
+#define	SYSFUN(x)	(*(unsigned long long *)((*(unsigned long long *)IMG(0x8300)) + (x<<3)))
 
 #define L( x ) _L ( x )
 #define _L( x ) L ## x
@@ -211,8 +211,8 @@ typedef enum
 #define quit_print		(SYSVAR(10))
 #define image   (SYSVAR(12))
 #define filesystem_type (SYSVAR(13))
-#define grub_efi_image_handle ((void *)*SYSVAR_2(14))
-#define grub_efi_system_table ((void *)*SYSVAR_2(15))
+#define grub_efi_image_handle (SYSVAR(14))
+#define grub_efi_system_table (SYSVAR(15))
 #define buf_geom ((struct geometry *)(SYSVAR(16)))
 #define tmp_geom ((struct geometry *)(SYSVAR(17)))
 #define term_table ((struct term_entry *)(SYSVAR(18)))			//地址
@@ -221,11 +221,14 @@ typedef enum
 #define fsys_type (SYSVAR(21))
 #define NUM_FSYS (SYSVAR(22))
 #define graphics_inited (SYSVAR(23))
-#define BASE_ADDR ((char *)(SYSVAR(24)))
+#define BASE_ADDR (SYSVAR_2(24))
 #define fontx (SYSVAR(26))
 #define fonty (SYSVAR(27))
 #define graphics_CURSOR (SYSVAR(28))
 #define menu_border (SYSVAR_2(29))
+#define ADDR_RET_STR (SYSVAR_2(31))
+/* If the variable is a string, then:  ADDR_RET_STR = var;
+   If the variable is a numeric value, then:  sprintf (ADDR_RET_STR,"0x%lx",var); */
 #define current_color (SYSVAR(42))
 #define current_color_64bit (SYSVAR(43))
 #define foreground (SYSVAR(43))
@@ -237,6 +240,9 @@ typedef enum
 
 #define sprintf ((int (*)(char *, const char *, ...))(SYSFUN(0)))
 #define printf(...) sprintf(NULL, __VA_ARGS__)
+#define printf_debug(...) sprintf((char*)2, __VA_ARGS__)
+#define printf_errinfo(...) sprintf((char*)3, __VA_ARGS__)
+#define printf_warning(...) sprintf((char*)2, __VA_ARGS__)
 #define putstr ((void (*)(const char *))(SYSFUN(1)))
 #define putchar ((void (*)(int))(SYSFUN(2)))
 #define get_cmdline_obsolete ((int (*)(struct get_cmdline_arg cmdline))(SYSFUN(3)))
