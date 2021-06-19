@@ -38,7 +38,8 @@ static int main(char *arg,int key)
   sprintf (uefi_ver, "%u.%u", uefi_major_rev, uefi_minor_1);
   if (uefi_minor_2)
     sprintf (uefi_ver, "%s.%u", uefi_ver, uefi_minor_2);
-  return printf ("%s\n", uefi_ver);
+  printf ("%s\n", uefi_ver);
+  return sprintf (ADDR_RET_STR, "%s", uefi_ver);
 }
 
 static void get_G4E_image(void)

@@ -38,7 +38,8 @@ static int main(char *arg,int key)
   if (strcmp (arg, "--pae") == 0)
   {
     grub_cpuid (1, eax, ebx, ecx, edx);
-    return printf ("%s\n", (edx & (1 << 6))? "true" : "false");
+    printf ("%s\n", (edx & (1 << 6))? "true" : "false");
+    return sprintf (ADDR_RET_STR, "%u", (edx & (1 << 6))? 1 : 0);
   }
   if (strcmp (arg, "--vendor") == 0)
   {
@@ -48,17 +49,20 @@ static int main(char *arg,int key)
     memmove (&vendor[4], &edx, 4);
     memmove (&vendor[8], &ecx, 4);
     vendor[12] = '\0';
-    return printf ("%s\n", vendor);
+    printf ("%s\n", vendor);
+    return sprintf (ADDR_RET_STR, "%s", vendor);
   }
   if (strcmp (arg, "--vmx") == 0)
   {
     grub_cpuid (1, eax, ebx, ecx, edx);
-    return printf ("%s\n", (ecx & (1 << 5))? "true" : "false");
+    printf ("%s\n", (ecx & (1 << 5))? "true" : "false");
+    return sprintf (ADDR_RET_STR, "%u", (ecx & (1 << 5))? 1 : 0);
   }
   if (strcmp (arg, "--hyperv") == 0)
   {
     grub_cpuid (1, eax, ebx, ecx, edx);
-    return printf ("%s\n", (ecx & (1 << 31))? "true" : "false");
+    printf ("%s\n", (ecx & (1 << 31))? "true" : "false");
+    return sprintf (ADDR_RET_STR, "%u", (ecx & (1 << 31))? 1 : 0);
   }
   if (strcmp (arg, "--vmsign") == 0)
   {
@@ -68,7 +72,8 @@ static int main(char *arg,int key)
     memmove (&vmsign[4], &ecx, 4);
     memmove (&vmsign[8], &edx, 4);
     vmsign[12] = '\0';
-    return printf ("%s\n", vmsign);
+    printf ("%s\n", vmsign);
+    return sprintf (ADDR_RET_STR, "%s", vmsign);
   }
   if (strcmp (arg, "--brand") == 0)
   {
@@ -89,7 +94,8 @@ static int main(char *arg,int key)
     memmove (&brand[36], &ebx, 4);
     memmove (&brand[40], &ecx, 4);
     memmove (&brand[44], &edx, 4);
-    return printf ("%s\n", brand);
+    printf ("%s\n", brand);
+    return sprintf (ADDR_RET_STR, "%s", brand);
   }
   if (memcmp (arg, "--eax=", 6) == 0)
   {

@@ -56,7 +56,7 @@ static int main (char *arg,int key)
   efi_status_t status;
   enum var_type efi_var_type = VAR_WSTR;
   char *p;
-  char *data = NULL, *out = NULL, *save = NULL;
+  char *data = NULL, *out = NULL;
   grub_size_t datasize = 0;
 
   get_G4E_image ();
@@ -112,14 +112,7 @@ static int main (char *arg,int key)
   }
   if (!*arg)
     return print_help ("invalid VARIABLE");
-  p = arg;
-  arg = skip_to (0, arg);
-  if (*arg)
-  {
-    p[arg - p - 1] = '\0';
-    save = arg;
-  }
-  get_variable (p, &var_guid, &datasize, (void **)&data);
+  get_variable (arg, &var_guid, &datasize, (void **)&data);
   if (!data || !datasize)
   {
     printf ("ERROR: %s not found.\n", arg);
@@ -167,10 +160,8 @@ static int main (char *arg,int key)
       goto fail;
   }
 
-  if (save)
-    envi_cmd (save, out, 0);
-  else
-    printf ("%s\n", out);
+  printf ("%s\n", out);
+  sprintf (ADDR_RET_STR, "%s", out);
 
   free (data);
   free (out);
@@ -185,7 +176,7 @@ static int print_help (const char *errmsg)
 {
   if (errmsg)
     printf ("ERROR: %s.\n", errmsg);
-  printf ("Usage: getenv [--type=TYPE] [--guid=GUID] EFI_VAR [G4E_VAR]\nOptions:\n");
+  printf ("Usage: getenv [--type=TYPE] [--guid=GUID] EFI_VAR\nOptions:\n");
   printf ("--type=TYPE Parse VARIABLE as specific type.\n");
   printf ("  avaliable types:\n");
   printf ("    UINT    unsigned int\n");

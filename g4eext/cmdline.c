@@ -53,10 +53,7 @@ static int main (char *arg,int key)
                               (void **)&loaded_image, ih,
                               0, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
   if (status != EFI_SUCCESS)
-  {
-    printf ("loaded image protocol not found.\n");
-    return 0;
-  }
+    return printf_errinfo ("loaded image protocol not found.\n");
   /* UTF-8 U+0000 ~ U+007F 1 byte  UTF-16 U+0000   ~ U+D7FF   2 bytes
    *       U+0080 ~ U+07FF 2 bytes        U+E000   ~ U+FFFF   2 bytes
    *       U+0800 ~ U+FFFF 3 bytes        U+010000 ~ U+10FFFF 4 bytes
@@ -64,16 +61,12 @@ static int main (char *arg,int key)
   cmdline_len = (loaded_image->load_options_size / 2) * 3 + 1;
   cmdline = zalloc (cmdline_len);
   if (!cmdline)
-  {
-    printf ("out of memory\n");
-    return 0;
-  }
+    printf_errinfo ("out of memory\n");
+
   wcmdline = loaded_image->load_options;
   utf16_to_utf8 (cmdline, wcmdline, cmdline_len);
-  if (!*arg)
-    printf ("%s\n", cmdline);
-  else
-    envi_cmd (arg, cmdline, 0);
+  printf ("%s\n", cmdline);
+  sprintf (ADDR_RET_STR, "%s", cmdline);
   free (cmdline);
   return 1;
 }
