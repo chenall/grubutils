@@ -1,5 +1,6 @@
 #include <grub4dos.h>
 #include <pc_slice.h>
+#include <uefi.h>
 /*
  *  GRUB  --  GRand Unified Bootloader
  *  Copyright (C) 1999,2000,2001,2002,2003,2004  Free Software Foundation, Inc.
@@ -66,10 +67,12 @@ static int get_partinfo(partinfo *PART_INFO)
 	unsigned int start, len, offset, ext_offset1;
 	unsigned int type, entry1;
 	partinfo *PI;
-	unsigned int id;
+	unsigned int id, i, j;
 	/* Look for the partition.  */
   PI = PART_INFO;
   id = 0UL;
+  struct grub_part_data *q;
+#if 0
   while ((	next_partition_drive		= current_drive,
 		next_partition_dest		= 0xFFFFFF,
 		next_partition_partition	= (unsigned long long)(void *)&part,
@@ -94,10 +97,20 @@ static int get_partinfo(partinfo *PART_INFO)
 	  }
 	  errnum = ERR_NONE;
 	}
+#endif  
+  for (i = 0; i < 16; i++)
+  {
+    q = get_partition_info (current_drive, (i<<16 | 0xffff));
+    if (!q)
+      continue;
+    PI->id = ++id;
+		PI->part = q->partition;
+		PI->start = q->partition_start;
+    ++PI;
+  }
 	PI->id = 0;
 	errnum = ERR_NONE;
 
-	int i,j;
 	partinfo t_pi;
 /*接分区位置排序(Ghost Style)*/
 	for (i = 0; i < id; i++)
@@ -136,7 +149,8 @@ diskid_func (char *arg,int flags)
 		unsigned int tmp_drive = saved_drive;
 		unsigned int tmp_partition = saved_partition;
 		char tmp[20];
-		for (id=0;id<(*((char *)0x475));)
+//		for (id=0;id<(*((char *)0x475));)
+		for (id=0;id<(*(char *)IMG(0x8371));)
 		{
 			saved_drive = current_drive = 0x80 + id;
 			current_partition = 0xffffff;
@@ -198,11 +212,13 @@ diskid_func (char *arg,int flags)
 		if (dd == 0)
 			dd = saved_drive - 0x7f;
 		else if (dd < 0)
-			dd = (*((char *)0x475)) + dd + 1;
+//			dd = (*((char *)0x475)) + dd + 1;
+			dd = (*((char *)IMG(0x8371))) + dd + 1;
 
 		if (dd < 1)
 			return 0;
-		for(current_drive = 0x7f + dd;dd && dd<=(*((char *)0x475));++arg)
+//		for(current_drive = 0x7f + dd;dd && dd<=(*((char *)0x475));++arg)
+		for(current_drive = 0x7f + dd;dd && dd<=(*((char *)IMG(0x8371)));++arg)
 		{
 			id = get_partinfo(PART_INFO);
 
@@ -215,7 +231,8 @@ diskid_func (char *arg,int flags)
 				if (dp >= id)
 				{
 					dp = 1;
-					if (dd < *((char *)0x475))
+//					if (dd < *((char *)0x475))
+					if (dd < *((char *)IMG(0x8371)))
 						++dd;
 					else
 						dd = 1;
@@ -231,7 +248,8 @@ diskid_func (char *arg,int flags)
 					if (dd > 1)
 						--dd;
 					else
-						dd = *((char *)0x475);
+//						dd = *((char *)0x475);
+						dd = *((char *)IMG(0x8371));
 					continue;
 				}
 				--dp;
@@ -239,7 +257,8 @@ diskid_func (char *arg,int flags)
 			saved_drive = current_drive;
 			saved_partition = PART_INFO[dp-1].part;
 			sprintf((char *)RET_VAR,"%d:%d\r\r",dd,dp);
-			sprintf(((char*)0x4CA00),"%d.%d",dd,dp);
+//			sprintf(((char*)0x4CA00),"%d.%d",dd,dp);
+			sprintf(((char*)ADDR_RET_STR),"%d.%d",dd,dp);
 			if (debug > 0)
 				printf(" %d:%d",dd,dp);
 			return builtin_cmd("root","()", 1);
@@ -287,7 +306,8 @@ diskid_func (char *arg,int flags)
 				*P |= i + 1;						/*BB 从1开始的分区编号,以该分区在磁盘的位置排序*/
 			}
 			sprintf((char *)RET_VAR,"%d:%d\r\r",(unsigned char)(current_drive - 0x7F),i+1);
-			sprintf(((char*)0x4CA00),"%d.%d",(unsigned char)(current_drive - 0x7F),i+1);
+//			sprintf(((char*)0x4CA00),"%d.%d",(unsigned char)(current_drive - 0x7F),i+1);
+			sprintf(((char*)ADDR_RET_STR),"%d.%d",(unsigned char)(current_drive - 0x7F),i+1);
 			if (debug > 0)
 				printf(" (hd%d,%d) in Ghost Style is: %d:%d\n",(unsigned int)(current_drive-0x80),(unsigned int)(current_partition >> 16),(unsigned int)(current_drive - 0x7F),i+1);
 			return 1;

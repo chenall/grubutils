@@ -200,33 +200,33 @@ typedef enum
 
 #define next_partition_drive		(SYSVAR(0))
 #define next_partition_dest		(SYSVAR(1))
-#define next_partition_partition	(SYSVAR_2(2))
-#define next_partition_type		(SYSVAR_2(3))
-#define next_partition_start		(SYSVAR_2(4))
-#define next_partition_len		(SYSVAR_2(5))
-#define next_partition_offset		(SYSVAR_2(6))
-#define next_partition_entry		(SYSVAR_2(7))
-#define next_partition_ext_offset	(SYSVAR_2(8))
-#define next_partition_buf		(SYSVAR_2(9))
+#define next_partition_partition	((int *)(SYSVAR_2(2)))
+#define next_partition_type		((int *)(SYSVAR_2(3)))
+#define next_partition_start		((long long *)(SYSVAR_2(4)))
+#define next_partition_len		((long long *)(SYSVAR_2(5)))
+#define next_partition_offset		((long long *)(SYSVAR_2(6)))
+#define next_partition_entry		((int *)(SYSVAR_2(7)))
+#define next_partition_ext_offset	((int *)(SYSVAR_2(8)))
+#define next_partition_buf		((char *)(SYSVAR_2(9)))
 #define quit_print		(SYSVAR(10))
-#define image   (SYSVAR(12))
+#define image   ((struct grub_efi_loaded_image *)(SYSVAR_2(12)))
 #define filesystem_type (SYSVAR(13))
-#define grub_efi_image_handle (SYSVAR(14))
-#define grub_efi_system_table (SYSVAR(15))
-#define buf_geom ((struct geometry *)(SYSVAR(16)))
-#define tmp_geom ((struct geometry *)(SYSVAR(17)))
-#define term_table ((struct term_entry *)(SYSVAR(18)))			//地址
-#define current_term ((struct term_entry *)(SYSVAR(19)))		//地址
-#define fsys_table ((struct fsys_entry *)(IMG(SYSVAR(20))))	//地址
+#define grub_efi_image_handle ((void *)(SYSVAR_2(14)))
+#define grub_efi_system_table ((void *)(SYSVAR_2(15)))
+#define buf_geom ((struct geometry *)(SYSVAR_2(16)))
+#define tmp_geom ((struct geometry *)(SYSVAR_2(17)))
+#define CONFIG_ENTRIES ((char *)(SYSVAR_2(18)))
+#define current_term ((struct term_entry *)(SYSVAR(19)))
+#define fsys_table (SYSVAR(20))
 #define fsys_type (SYSVAR(21))
 #define NUM_FSYS (SYSVAR(22))
 #define graphics_inited (SYSVAR(23))
-#define BASE_ADDR (SYSVAR_2(24))
+#define BASE_ADDR ((char *)(SYSVAR_2(24)))
 #define fontx (SYSVAR(26))
 #define fonty (SYSVAR(27))
-#define graphics_CURSOR (SYSVAR(28))
-#define menu_border (SYSVAR_2(29))
-#define ADDR_RET_STR (SYSVAR_2(31))
+#define graphics_CURSOR ((void *)(SYSVAR_2(28)))
+#define menu_border ((struct border *)(SYSVAR_2(29)))
+#define ADDR_RET_STR ((char *)(SYSVAR_2(31)))
 /* If the variable is a string, then:  ADDR_RET_STR = var;
    If the variable is a numeric value, then:  sprintf (ADDR_RET_STR,"0x%lx",var); */
 #define current_color (SYSVAR(42))
@@ -266,6 +266,7 @@ typedef enum
 #define memcmp ((int (*)(const char *s1, const char *s2, int n))(SYSFUN(22)))
 #define memmove ((void *(*)(void *to, const void *from, int len))(SYSFUN(23)))
 #define memset ((void *(*)(void *start, int c, int len))(SYSFUN(24)))
+#define get_partition_info ((void *(*)(int drive, int partition))(SYSFUN(25)))
 #define open ((int (*)(char *))(SYSFUN(26)))
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned int))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
@@ -397,16 +398,6 @@ struct master_and_dos_boot_sector {
     } P[4];
 /* 1FE */ unsigned short boot_signature __attribute__ ((packed));/* 0xAA55 */
   };
-
-/* Device Path definitions. 设备路径定义 */
-struct grub_efi_device_path
-{
-  unsigned char type;    //类型    04				7f结束
-  unsigned char subtype; //子类型  04				ff结束  01结束设备路径的此实例并启动新的设备路径
-  unsigned short length; //长度    0030  \EFI\BOOT\BOOTX64.EFI	此结构的长度(字节)。长度为4字节。
-} __attribute__ ((packed));
-typedef struct grub_efi_device_path grub_efi_device_path_t;
-
 
 struct drive_map_slot
 {

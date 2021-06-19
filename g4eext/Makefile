@@ -32,7 +32,8 @@ all: prepare $(MODULES)
 
 %.mod: %.o
 	$(OBJCOPY) -O binary $< $@
-	$(MV) $@ bin/$$(basename -s .mod $@)
+#	$(MV) $@ bin/$$(basename -s .mod $@)
+	$(MV) $@ bin/$$(basename $@ .mod)
 
 .PHONY: prepare
 prepare:
