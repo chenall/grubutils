@@ -32,7 +32,8 @@ all: prepare $(MODULES) bin/fatmini
 
 %.mod: %.tmp
 	$(SED) -e '$$s/\x00*$$//' $< > $@
-	$(MV) $@ bin/$$(basename -s .mod $@)
+#	$(MV) $@ bin/$$(basename -s .mod $@)
+	$(MV) $@ bin/$$(basename $@ .mod)
 
 bin/fatmini:
 	$(CC) $(CFLAGS) -I../include/ -DFAT_MINI fat/fat.c -o fat/fatmini.o

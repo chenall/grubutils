@@ -205,6 +205,11 @@ int main(char *arg,int flags,int flags1)
 	p_hotkey_flags = (unsigned short*)(base_addr + 508);
 	cur_menu_flag.flags = flags1;
 
+  if (HOTKEY_FUNC)
+  {
+    hotkey_flags = *(unsigned short *)(init_free_mem_start + 0x40e00 - 2);
+    *p_hotkey_flags = hotkey_flags;
+  }
 	if (flags == HOTKEY_MAGIC)
 	{
 	    if (arg && *(int *)arg == 0x54494E49)//INIT 初始数数据
@@ -359,7 +364,8 @@ int main(char *arg,int flags,int flags1)
     printf("      \thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
     printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandline\"\n");
     printf("      \te.g.\ttitle [F4] Boot Win 8\n");
-    printf("      \te.g.\ttitle Boot ^Win 10\n\n");
+    printf("      \te.g.\ttitle Boot ^Win 10\n");
+    printf("      \thotkey -u\tunload hotkey.\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
 	}
@@ -378,6 +384,7 @@ int main(char *arg,int flags,int flags1)
 		else if (*arg == 'u')
 		{
 			HOTKEY_FUNC = 0;
+      memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 			return builtin_cmd("delmod","hotkey",flags);
 		}
 		arg = wee_skip_to(arg,0);
@@ -407,6 +414,7 @@ int main(char *arg,int flags,int flags1)
 		memmove((void*)HOTKEY_PROG_MEMORY,p,buff_len);
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
 		HOTKEY_FUNC = HOTKEY_PROG_MEMORY;
+    *(unsigned short *)(init_free_mem_start + 0x40e00 - 2) = hotkey_flags;
 		//获取程序执行时的路径的文件名。
 		//p = p-*(int*)(p-16);
 		//strncat(p," hotkey",-1);

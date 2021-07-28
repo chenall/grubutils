@@ -34,7 +34,7 @@ asm(".long edata");		/* actually not used for now */
 asm(".long __bss_start");	/* actually not used for now */
 asm(".long .bss");		/* actually not used for now */
 asm(".long end");		/* this is the process end 这是进程结束*/
-asm(".ascii \"main_end\""); //新版本签名
+asm(".ascii \"uefi_end\""); //uefi版本签名
 
 /* Don't insert any code/data here! 不要在这里插入任何代码/数据！*/
 /* these 16 bytes can be used for any purpose. 这16个字节可以用于任何目的*/
