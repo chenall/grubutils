@@ -361,11 +361,11 @@ int main(char *arg,int flags,int flags1)
 	{
     printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
     printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
+    printf("      \thotkey -u\tunload hotkey.\n");
     printf("      \thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
     printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandline\"\n");
     printf("      \te.g.\ttitle [F4] Boot Win 8\n");
-    printf("      \te.g.\ttitle Boot ^Win 10\n");
-    printf("      \thotkey -u\tunload hotkey.\n\n");
+    printf("      \te.g.\ttitle Boot ^Win 10\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
 	}

@@ -167,6 +167,7 @@ typedef enum
 
 #define install_partition (*(unsigned long long *)IMG(0x8208))
 #define HOTKEY_FUNC *(grub_size_t*)IMG(0x8260)    //热键函数
+#define HOTKEY_FLAG *(short *)IMG(0x827c)         //热键标记
 #define boot_drive (*(unsigned long long *)IMG(0x8280))
 #define pxe_yip (*(unsigned int *)IMG(0x8284))
 #define pxe_sip (*(unsigned int *)IMG(0x8288))

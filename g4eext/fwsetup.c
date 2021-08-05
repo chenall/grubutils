@@ -80,7 +80,7 @@ static void get_G4E_image (void)
   grub_size_t i;
 
   //在内存0-0x9ffff, 搜索特定字符串"GRUB4EFI"，获得GRUB_IMGE
-  for (i = 0x9F100; i >= 0; i -= 0x1000)
+  for (i = 0x40100; i <= 0x9f100 ; i += 0x1000)
   {
     if (*(unsigned long long *)i == 0x4946453442555247)	//比较数据
     {

@@ -168,7 +168,8 @@ static int check_allow_key(unsigned short key);
 /* gcc treat the following as data only if a global initialization like the		gcc仅在发生与上述行类似的全局初始化时才将以下内容视为数据。
  * above line occurs.
  */
-static hkey_data_t hotkey_data = {0};	//HOTKEY 数据保留区
+//static hkey_data_t hotkey_data = {0};	//HOTKEY 数据保留区
+static hkey_data_t hotkey_data;	//HOTKEY 数据保留区
 static int hotkey_cmd_flag = HOTKEY_MAGIC;			//程序尾部标志
 static char *HOTKEY_PROG_MEMORY;
 static grub_size_t g4e_data = 0;
@@ -204,8 +205,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 
   if (HOTKEY_FUNC)
   {
-    hotkey_flags = *(unsigned short *)(menu_mem + 0x40e00 - 2);
-    *p_hotkey_flags = hotkey_flags;
+    hotkey_flags = HOTKEY_FLAG;
   }
 	if (flags == HOTKEY_MAGIC)	//首次加载热键时，以及首次处理热键参数时被调用
 	{
@@ -225,7 +225,8 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		if (my_app_id != HOTKEY_MAGIC/* || (!hotkey->key_code && !hkc->key_code)*/)
 			return key;
 
-		hotkey_flags = *p_hotkey_flags;
+//		hotkey_flags = *p_hotkey_flags;
+    hotkey_flags = HOTKEY_FLAG;
     c = key & 0xf00ffff;
 		if (!c || check_allow_key(c))	//检测当前的按键码是否方向键或回车键, 是则返回
 			return c;
@@ -247,13 +248,12 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 					if (current_term->SETCOLORSTATE)
 				    current_term->SETCOLORSTATE(COLOR_STATE_STANDARD);
 					cls();
-					if (debug > 0)
-				    printf(" Hotkey Boot: %s\n",hkc[i].cmd);
+				  printf_debug(" Hotkey Boot: %s\n",hkc[i].cmd);
 			    builtin_cmd(NULL,hkc[i].cmd,BUILTIN_CMDLINE);
 				}
 				if (putchar_hooked == 0 && errnum > ERR_NONE && errnum < MAX_ERR_NUM)
 				{
-			    printf("\nError %u\n",errnum);
+			    printf_errinfo("\nError %u\n",errnum);
 			    getkey();
 				}
 				errnum = err_old;
@@ -346,18 +346,17 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		return 1;
 	}
 
-	if (debug > 0)
-    printf("Hotkey for grub4efi by chenall (renew by yaya),%s\n",__DATE__);
+  printf_debug("Hotkey for grub4efi by chenall (renew by yaya),%s\n",__DATE__);
 
   if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg)) //帮助信息
   {
     printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
     printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
+    printf("      \thotkey -u\tunload hotkey.\n");
     printf("      \thotkey [HOTKEY] \"COMMAND\"\tregister new hotkey\n\thotkey [HOTKEY]\tDisable Registered hotkey HOTKEY\n");
     printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandline\"\n");
     printf("      \te.g.\ttitle [F4] Boot Win 8\n");
-    printf("      \te.g.\ttitle Boot ^Win 10\n");
-    printf("      \thotkey -u\tunload hotkey.\n\n");
+    printf("      \te.g.\ttitle Boot ^Win 10\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
   }
@@ -375,9 +374,14 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		}
 		else if (*arg == 'u')
 		{
-      free ((void *)HOTKEY_FUNC);
-			HOTKEY_FUNC = 0;
-      memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
+      if (HOTKEY_FUNC)
+      {
+        free ((void *)HOTKEY_FUNC);
+        HOTKEY_FUNC = 0;
+        hotkey_flags = 0;
+        HOTKEY_FLAG = 0;
+        memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
+      }
 			return builtin_cmd("delmod","hotkey",flags);
 		}
 		arg = wee_skip_to(arg,0);
@@ -386,7 +390,9 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 	if (!HOTKEY_FUNC) //首次加载热键，初始化
 	{
 		int buff_len = 0x4000;
-		*p_hotkey_flags = hotkey_flags;
+//		*p_hotkey_flags = hotkey_flags;
+    HOTKEY_FLAG = hotkey_flags;
+    memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		//本程序由command加载, 执行完毕就释放了，因此需要为热键单独分配内存。
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
@@ -394,16 +400,14 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		char *p = malloc(buff_len);
 		HOTKEY_FUNC = (grub_size_t)p;
 		memmove((void*)HOTKEY_FUNC,&main,buff_len);
-    *(unsigned short *)(menu_mem + 0x40e00 - 2) = hotkey_flags;
+
 		//获取程序执行时的路径的文件名。
     ((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC,0,0);//获取新HOTKEY数据位置并作一些初使化
-		if (debug > 0)
-		{
-			printf("Hotkey Installed!\n");
-		}
+		printf_debug("Hotkey Installed!\n");
 	}
 	else
-		*p_hotkey_flags |= hotkey_flags;
+//		*p_hotkey_flags |= hotkey_flags;
+    HOTKEY_FLAG |= hotkey_flags;
 
 	if (arg)  //处理热键参数的中括号
 	{
@@ -420,17 +424,15 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		{
 			if (!(flags & BUILTIN_CMDLINE) || debug < 1)//必须在命令行下并且DEBUG 非 OFF 模式才会显示
 		    return 1;
-			if (debug > 1)
-		    printf("hotkey_data_addr: 0x%X\n",hkd);
+		  printf_debug("hotkey_data_addr: 0x%X\n",hkd);
 			if (hkc->key_code)
-		    printf("Current registered hotkey:\n");
+		    printf_debug("Current registered hotkey:\n");
 			while(hkc->key_code)
 			{
 		    if (hkc->key_code != -1)
 		    {
-					if (debug > 1)
-						printf("0x%X ",hkc->cmd);
-					printf("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
+					printf_debug("0x%X ",hkc->cmd);
+					printf_debug("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
 		    }
 		    ++hkc;
 			}
@@ -496,7 +498,7 @@ test:
 		}
 		if (i==64 && exist_key == -1)
 		{
-			printf("Max 64 hotkey cmds limit!");
+			printf_errinfo("Max 64 hotkey cmds limit!");
 			return 0;
 		}
 #if 0   //不能处理第二个中括号
@@ -518,7 +520,7 @@ test:
 		}
 		if (hkd->cmd_pos + cmd_len >= sizeof(hkd->cmd))
 		{
-			printf("error: not enough space!\n");
+			printf_errinfo("error: not enough space!\n");
 			return 0;
 		}	    
 		if (i >= 0)//需要更新地址
@@ -527,8 +529,7 @@ test:
 			hkd->cmd_pos += cmd_len;//命令数据区
 		}
 		memmove(hkc[exist_key].cmd,arg,cmd_len ); //保存命令
-		if (debug > 0)
-			printf("%d [%s] registered!\n",exist_key,get_keyname(key_code));
+		printf_debug("%d [%s] registered!\n",exist_key,get_keyname(key_code));
     while (*arg >= ' ')  //检测终止符,回车换行
 			arg++;
     if (*arg) //如果是回车换行,结束
@@ -708,7 +709,7 @@ static void get_G4E_image(void)
   grub_size_t i;
 
   //在内存0-0x9ffff, 搜索特定字符串"GRUB4EFI"，获得GRUB_IMGE
-  for (i = 0x9F100; i >= 0; i -= 0x1000)
+  for (i = 0x40100; i <= 0x9f100 ; i += 0x1000)
   {
     if (*(unsigned long long *)i == 0x4946453442555247)	//比较数据
     {
