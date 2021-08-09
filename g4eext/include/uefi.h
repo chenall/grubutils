@@ -653,7 +653,7 @@ struct efi_guid
 } __attribute__ ((aligned(8)));
 typedef struct efi_guid efi_guid_t;
 
-typedef grub_packed_guid_t efi_packed_guid_t;
+typedef efi_guid_t efi_packed_guid_t;
 
 struct efi_list_entry
 {
@@ -1794,23 +1794,5 @@ typedef struct efi_component_name2_protocol efi_component_name2_protocol_t;
 
 #define CR(RECORD, TYPE, FIELD) \
     ((TYPE *) ((char *) (RECORD) - (char *) &(((TYPE *) 0)->FIELD)))
-
-struct grub_part_data  //efi分区数据	(硬盘)  grub定义
-{
-	efi_handle_t part_handle;               //句柄
-	efi_device_path_t *part_path;           //分区路径
-	efi_device_path_t *last_part_path;      //最后分区路径
-	struct grub_part_data *next;  				  //下一个
-	unsigned char	drive;									  //驱动器
-	unsigned char	partition_type;					  //MBR分区ID
-	unsigned char	partition_activity_flag;  //分区活动标志
-	unsigned char partition_entry;				  //分区入口
-	unsigned int partition_ext_offset;		  //扩展分区偏移
-	unsigned int partition;							    //当前分区
-	unsigned long long partition_offset;	  //分区偏移
-	unsigned long long partition_start;		  //分区起始扇区
-	unsigned long long partition_len;			  //分区扇区尺寸
-	unsigned char partition_signature[16];  //分区签名
-} __attribute__ ((packed));							//0x28
 
 #endif /* ! EFI_API_HEADER */

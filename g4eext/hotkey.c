@@ -276,7 +276,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			int cur_sel = -1;
 			char **titles;
 
-			if (c >= 'A' && c <= 'Z')	//按下Shift键
+			if ((c&0xffff) >= 'A' && (c&0xffff) <= 'Z')	//按下Shift键  Shift+e：有的返回0045，有的返回1000045
 				return h;
 			if (c & 0xf000000)	//如果按下Shift或Ctrl或Alt键
 				goto chk_control;
