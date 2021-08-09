@@ -20,10 +20,20 @@
 #ifndef G4E_UEFI_HEADER
 #define G4E_UEFI_HEADER    1
 
-#include "grub4dos.h"
-
 /* For consistency and safety, we name the EFI-defined types differently.
    All names are transformed into lower case and _t appended.  */
+
+#ifndef __i386__
+#if (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)))||(defined(__clang__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 2)))
+  #define EFIAPI __attribute__((ms_abi))
+#else
+  #error Compiler is too old for GNU_EFI_USE_MS_ABI
+#endif
+#endif
+
+#ifndef EFIAPI
+  #define EFIAPI  // Substitute expresion to force C calling convention 
+#endif
 
 /* Constants. */
 #define EFI_EVT_TIMER                          0x80000000
@@ -382,20 +392,41 @@
     { 0x89, 0x29, 0x48, 0xbc, 0xd9, 0x0a, 0xd3, 0x1a } \
   }
 
+/* Types.  */
+typedef char                efi_boolean_t;
+#if defined(__i386__)
+typedef unsigned int        efi_uintn_t;
+typedef int                 efi_intn_t;
+#else
+typedef unsigned long long  efi_uintn_t;
+typedef long long           efi_intn_t;
+#endif
+typedef signed char         efi_int8_t;
+typedef unsigned char       efi_uint8_t;
+typedef signed short        efi_int16_t;
+typedef unsigned short      efi_uint16_t;
+typedef signed int          efi_int32_t;
+typedef unsigned int        efi_uint32_t;
+typedef signed long long    efi_int64_t;
+typedef unsigned long long  efi_uint64_t;
+typedef unsigned char       efi_char8_t;
+typedef unsigned short      efi_char16_t;
+typedef efi_uintn_t         efi_status_t;
+
 struct efi_sal_system_table
 {
-  grub_uint32_t signature;
-  grub_uint32_t total_table_len;
-  grub_uint16_t sal_rev;
-  grub_uint16_t entry_count;
-  grub_uint8_t checksum;
-  grub_uint8_t reserved1[7];
-  grub_uint16_t sal_a_version;
-  grub_uint16_t sal_b_version;
-  grub_uint8_t oem_id[32];
-  grub_uint8_t product_id[32];
-  grub_uint8_t reserved2[8];
-  grub_uint8_t entries[0];
+  efi_uint32_t signature;
+  efi_uint32_t total_table_len;
+  efi_uint16_t sal_rev;
+  efi_uint16_t entry_count;
+  efi_uint8_t checksum;
+  efi_uint8_t reserved1[7];
+  efi_uint16_t sal_a_version;
+  efi_uint16_t sal_b_version;
+  efi_uint8_t oem_id[32];
+  efi_uint8_t product_id[32];
+  efi_uint8_t reserved2[8];
+  efi_uint8_t entries[0];
 };
 
 enum
@@ -410,61 +441,61 @@ enum
 
 struct efi_sal_system_table_entrypoint_descriptor
 {
-  grub_uint8_t type;
-  grub_uint8_t pad[7];
-  grub_uint64_t pal_proc_addr;
-  grub_uint64_t sal_proc_addr;
-  grub_uint64_t global_data_ptr;
-  grub_uint64_t reserved[2];
+  efi_uint8_t type;
+  efi_uint8_t pad[7];
+  efi_uint64_t pal_proc_addr;
+  efi_uint64_t sal_proc_addr;
+  efi_uint64_t global_data_ptr;
+  efi_uint64_t reserved[2];
 };
 
 struct efi_sal_system_table_memory_descriptor
 {
-  grub_uint8_t type;
-  grub_uint8_t sal_used;
-  grub_uint8_t attr;
-  grub_uint8_t ar;
-  grub_uint8_t attr_mask;
-  grub_uint8_t mem_type;
-  grub_uint8_t usage;
-  grub_uint8_t unknown;
-  grub_uint64_t addr;
-  grub_uint64_t len;
-  grub_uint64_t unknown2;
+  efi_uint8_t type;
+  efi_uint8_t sal_used;
+  efi_uint8_t attr;
+  efi_uint8_t ar;
+  efi_uint8_t attr_mask;
+  efi_uint8_t mem_type;
+  efi_uint8_t usage;
+  efi_uint8_t unknown;
+  efi_uint64_t addr;
+  efi_uint64_t len;
+  efi_uint64_t unknown2;
 };
 
 struct efi_sal_system_table_platform_features
 {
-  grub_uint8_t type;
-  grub_uint8_t flags;
-  grub_uint8_t reserved[14];
+  efi_uint8_t type;
+  efi_uint8_t flags;
+  efi_uint8_t reserved[14];
 };
 
 struct efi_sal_system_table_translation_register_descriptor
 {
-  grub_uint8_t type;
-  grub_uint8_t register_type;
-  grub_uint8_t register_number;
-  grub_uint8_t reserved[5];
-  grub_uint64_t addr;
-  grub_uint64_t page_size;
-  grub_uint64_t reserver;
+  efi_uint8_t type;
+  efi_uint8_t register_type;
+  efi_uint8_t register_number;
+  efi_uint8_t reserved[5];
+  efi_uint64_t addr;
+  efi_uint64_t page_size;
+  efi_uint64_t reserver;
 };
 
 struct efi_sal_system_table_purge_translation_coherence
 {
-  grub_uint8_t type;
-  grub_uint8_t reserved[3];  
-  grub_uint32_t ndomains;
-  grub_uint64_t coherence;
+  efi_uint8_t type;
+  efi_uint8_t reserved[3];  
+  efi_uint32_t ndomains;
+  efi_uint64_t coherence;
 };
 
 struct efi_sal_system_table_ap_wakeup
 {
-  grub_uint8_t type;
-  grub_uint8_t mechanism;
-  grub_uint8_t reserved[6];
-  grub_uint64_t vector;
+  efi_uint8_t type;
+  efi_uint8_t mechanism;
+  efi_uint8_t reserved[6];
+  efi_uint64_t vector;
 };
 
 enum
@@ -554,22 +585,6 @@ enum efi_reset_type
 };
 typedef enum efi_reset_type efi_reset_type_t;
 
-/* Types.  */
-typedef char          efi_boolean_t;
-typedef grub_ssize_t  efi_intn_t;
-typedef grub_size_t   efi_uintn_t;
-typedef grub_int8_t   efi_int8_t;
-typedef grub_uint8_t  efi_uint8_t;
-typedef grub_int16_t  efi_int16_t;
-typedef grub_uint16_t efi_uint16_t;
-typedef grub_int32_t  efi_int32_t;
-typedef grub_uint32_t efi_uint32_t;
-typedef grub_int64_t  efi_int64_t;
-typedef grub_uint64_t efi_uint64_t;
-typedef grub_uint8_t  efi_char8_t;
-typedef grub_uint16_t efi_char16_t;
-typedef efi_uintn_t   efi_status_t;
-
 #define EFI_ERROR_CODE(value) \
   ((((efi_status_t) 1) << (sizeof (efi_status_t) * 8 - 1)) | (value))
 
@@ -626,34 +641,45 @@ typedef union
 
 typedef efi_uint64_t efi_physical_address_t;
 typedef efi_uint64_t efi_virtual_address_t;
-typedef struct {
-  grub_uint8_t addr[4];
+typedef struct
+{
+  efi_uint8_t addr[4];
 } efi_pxe_ipv4_address_t;
 
-typedef struct {
-  grub_uint8_t addr[16];
+typedef struct
+{
+  efi_uint8_t addr[16];
 } efi_pxe_ipv6_address_t;
 
-typedef struct {
-  grub_uint8_t addr[32];
+typedef struct
+{
+  efi_uint8_t addr[32];
 } efi_pxe_mac_address_t;
 
-typedef union {
-    grub_uint32_t addr[4];
+typedef union
+{
+    efi_uint32_t addr[4];
     efi_pxe_ipv4_address_t v4;
     efi_pxe_ipv6_address_t v6;
 } efi_pxe_ip_address_t;
 
 struct efi_guid
 {
-  grub_uint32_t data1;
-  grub_uint16_t data2;
-  grub_uint16_t data3;
-  grub_uint8_t data4[8];
+  efi_uint32_t data1;
+  efi_uint16_t data2;
+  efi_uint16_t data3;
+  efi_uint8_t data4[8];
 } __attribute__ ((aligned(8)));
 typedef struct efi_guid efi_guid_t;
 
-typedef efi_guid_t efi_packed_guid_t;
+struct efi_packed_guid
+{
+  efi_uint32_t data1;
+  efi_uint16_t data2;
+  efi_uint16_t data3;
+  efi_uint8_t data4[8];
+} __attribute__ ((packed));
+typedef struct efi_packed_guid efi_packed_guid_t;
 
 struct efi_list_entry
 {
@@ -690,7 +716,7 @@ typedef struct efi_device_path efi_device_path_protocol_t;
 #define EFI_DEVICE_PATH_TYPE(dp)     ((dp)->type & 0x7f)
 #define EFI_DEVICE_PATH_SUBTYPE(dp)  ((dp)->subtype)
 #define EFI_DEVICE_PATH_LENGTH(dp)   ((dp)->length)
-#define EFI_DEVICE_PATH_VALID(dp)    ((dp) != NULL && EFI_DEVICE_PATH_LENGTH (dp) >= 4)
+#define EFI_DEVICE_PATH_VALID(dp)    ((dp) != ((void *) 0) && EFI_DEVICE_PATH_LENGTH (dp) >= 4)
 
 /* The End of Device Path nodes.  */
 #define EFI_END_DEVICE_PATH_TYPE      (0xff & 0x7f)
@@ -708,7 +734,7 @@ typedef struct efi_device_path efi_device_path_protocol_t;
   (EFI_DEVICE_PATH_VALID (dp) \
    ? ((efi_device_path_t *) \
       ((char *) (dp) + EFI_DEVICE_PATH_LENGTH (dp))) \
-   : NULL)
+   : ((void *) 0))
 
 /* Hardware Device Path.  */
 #define EFI_HARDWARE_DEVICE_PATH_TYPE    1
@@ -791,10 +817,10 @@ typedef struct efi_expanded_acpi_device_path efi_expanded_acpi_device_path_t;
   (((efi_expanded_acpi_device_path_t *) dp)->hidstr)
 #define EFI_EXPANDED_ACPI_UIDSTR(dp)  \
   (EFI_EXPANDED_ACPI_HIDSTR(dp) \
-   + grub_strlen (EFI_EXPANDED_ACPI_HIDSTR(dp)) + 1)
+   + strlen (EFI_EXPANDED_ACPI_HIDSTR(dp)) + 1)
 #define EFI_EXPANDED_ACPI_CIDSTR(dp)  \
   (EFI_EXPANDED_ACPI_UIDSTR(dp) \
-   + grub_strlen (EFI_EXPANDED_ACPI_UIDSTR(dp)) + 1)
+   + strlen (EFI_EXPANDED_ACPI_UIDSTR(dp)) + 1)
 
 /* Messaging Device Path.  */
 #define EFI_MESSAGING_DEVICE_PATH_TYPE    3

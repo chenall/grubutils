@@ -5,6 +5,9 @@
 
 #ifndef GRUB4DOS_2015_02_15
 #define GRUB4DOS_2015_02_15
+
+#include <uefi.h>
+
 #undef NULL
 #define NULL         ((void *) 0)
 #define	IMG(x)	((x) - 0x8200 + g4e_data)
@@ -35,14 +38,9 @@ typedef long long   grub_int64_t;
   typedef long long           grub_ssize_t;
 #endif
 
-typedef char grub_efi_boolean_t;
 typedef grub_size_t   grub_addr_t;
 typedef grub_uint64_t grub_disk_addr_t;
 typedef grub_uint64_t grub_off_t;
-typedef grub_uint64_t grub_efi_uint64_t;
-typedef grub_uint32_t grub_efi_uint32_t;
-typedef grub_uint64_t grub_efi_uintn_t;
-typedef grub_uint64_t grub_efi_lba_t;
 
 /* Error codes (descriptions are in common.c) */
 typedef enum
@@ -206,7 +204,7 @@ typedef enum
 #define next_partition_ext_offset	((int *)(SYSVAR_2(8)))
 #define next_partition_buf		((char *)(SYSVAR_2(9)))
 #define quit_print		(SYSVAR(10))
-#define image   ((struct grub_efi_loaded_image *)(SYSVAR_2(12)))
+#define image   ((struct efi_loaded_image *)(SYSVAR_2(12)))
 #define filesystem_type (SYSVAR(13))
 #define grub_efi_image_handle ((void *)(SYSVAR_2(14)))
 #define grub_efi_system_table ((void *)(SYSVAR_2(15)))
@@ -257,7 +255,7 @@ typedef enum
 #define strncat ((int (*)(char *s1, const char *s2, int n))(SYSFUN(14)))
 #define strcpy ((char *(*)(char *dest, const char *src))(SYSFUN(16)))
 #define efidisk_readwrite ((int *(*)(int drive, grub_disk_addr_t sector, grub_size_t size, char *buf, int read_write))(SYSFUN(17)))
-#define blockio_read_write ((grub_size_t *(*)(block_io_protocol_t *this, grub_efi_uint32_t media_id, grub_efi_lba_t lba, grub_efi_uintn_t len, void *buf, int read_write))(SYSFUN(18)))
+#define blockio_read_write ((grub_size_t *(*)(efi_block_io_t *this, efi_uint32_t media_id, efi_lba_t lba, efi_uintn_t len, void *buf, int read_write))(SYSFUN(18)))
 #define getkey ((int (*)(void))(SYSFUN(19)))
 #define checkkey ((int (*)(void))(SYSFUN(20)))
 #define memcmp ((int (*)(const char *s1, const char *s2, int n))(SYSFUN(22)))
@@ -267,7 +265,7 @@ typedef enum
 #define open ((int (*)(char *))(SYSFUN(26)))
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned int))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
-#define get_device_by_drive ((struct grub_disk_data *(*)(unsigned int drive ))(SYSFUN(29)))
+#define get_device_by_drive ((struct grub_disk_data *(*)(unsigned int drive))(SYSFUN(29)))
 #define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned int write))(SYSFUN(31)))
 #define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned int write))(SYSFUN(32)))
 #define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
@@ -494,19 +492,6 @@ struct grub_datetime
 	unsigned char pad1;
 };
 
-//UEFI 函数调用约定
-#ifndef __i386__
-#if (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)))||(defined(__clang__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 2)))
-  #define EFIAPI __attribute__((ms_abi))
-#else
-  #error Compiler is too old for GNU_EFI_USE_MS_ABI
-#endif
-#endif
-
-#ifndef EFIAPI
-  #define EFIAPI  // Substitute expresion to force C calling convention 
-#endif
-
 //#include <stdarg.h> 可变参数定义
 #ifndef _VA_LIST
 typedef __builtin_va_list va_list;
@@ -525,74 +510,24 @@ typedef __builtin_va_list va_list;
 typedef __builtin_va_list __gnuc_va_list;
 #endif
 
-
-typedef void *grub_efi_handle_t;
-//设备路径定义
-struct grub_efi_device_path
-{
-  unsigned char type;    //类型
-  unsigned char subtype; //子类型
-  unsigned short length; //长度
-} __attribute__ ((packed));
-typedef struct grub_efi_device_path grub_efi_device_path_t;
-
-struct grub_efi_block_io_media  //块输入输出介质
-{
-  unsigned int media_id;            //媒体标识
-  char removable_media;   					//可移动媒体
-  char media_present;     					//媒体目前
-  char logical_partition; 					//逻辑分区
-  char read_only;         					//只读
-  char write_caching;     					//写缓存
-  unsigned char pad[3];             //填充
-  unsigned int block_size;          //块尺寸
-  unsigned int io_align;            //IO对齐
-  unsigned char pad2[4];            //填充
-  unsigned long long last_block;    //最后块
-};
-typedef struct grub_efi_block_io_media grub_efi_block_io_media_t;
-
-struct grub_efi_block_io  //块输入输出
-{
-  grub_uint64_t revision;                                           //修订
-  grub_efi_block_io_media_t *media;                                 //介质
-  grub_size_t EFIAPI (*reset) (struct grub_efi_block_io *this,
-			      grub_efi_boolean_t extended_verification);              //重置
-	//读块(本身,媒体id,起始逻辑块,读写字节,缓存地址)
-  grub_size_t EFIAPI (*read_blocks) (struct grub_efi_block_io *this,	//本身
-				    grub_efi_uint32_t media_id,															//读取请求的媒体ID。相当于驱动器号.
-				    grub_efi_lba_t lba,																			//要从设备上读取的起始逻辑块地址。以扇区计.
-				    grub_efi_uintn_t buffer_size,														//缓冲区的尺寸(字节)。这必须是设备内部块大小的倍数
-				    void *buffer);                                          //指向数据的目标缓冲区的指针。调用方负责隐式或显式拥有缓冲区。
-	//写块(本身,媒体id,起始逻辑块,读写字节,缓存地址) ff9600e
-  grub_size_t EFIAPI (*write_blocks) (struct grub_efi_block_io *this,//本身
-						grub_efi_uint32_t media_id,															//读取请求的媒体ID。相当于驱动器号.
-						grub_efi_lba_t lba,																			//要从设备上读取的起始逻辑块地址。以扇区计.
-						grub_efi_uintn_t buffer_size,														//缓冲区的尺寸(字节)。这必须是设备内部块大小的倍数。 
-						void *buffer);                                         	//指向数据的目标缓冲区的指针。调用方负责隐式或显式拥有缓冲区。
-						 //写块  ff9611b
-  grub_size_t EFIAPI (*flush_blocks) (struct grub_efi_block_io *this); //刷新块  将所有修改过的数据刷新到物理块设备。 
-};
-typedef struct grub_efi_block_io grub_efi_block_io_t;
-
 struct grub_disk_data  //efi磁盘数据	(软盘,硬盘,光盘)
 {
-  grub_efi_handle_t device_handle;          //句柄
-  grub_efi_device_path_t *device_path;      //设备路径
-  grub_efi_device_path_t *last_device_path; //最后设备路径
-  grub_efi_block_io_t *block_io;          	//块输入输出
+  efi_handle_t device_handle;          //句柄
+  efi_device_path_t *device_path;      //设备路径
+  efi_device_path_t *last_device_path; //最后设备路径
+  efi_block_io_t *block_io;          	//块输入输出
   struct grub_disk_data *next;           		//下一个
   unsigned char	drive;											//驱动器
   unsigned char	log2_sector;								//每扇区字节2的幂
   unsigned short sector_size;								//每扇区字节
   unsigned long long total_sectors;					//总扇区数
-} GRUB_PACKED;
+} __attribute__ ((packed));
 
 struct grub_part_data  //efi分区数据	(硬盘)
 {
-	grub_efi_handle_t part_handle;          //句柄
-	grub_efi_device_path_t *part_path;      //分区路径
-	grub_efi_device_path_t *last_part_path; //最后分区路径
+	efi_handle_t part_handle;          //句柄
+	efi_device_path_t *part_path;      //分区路径
+	efi_device_path_t *last_part_path; //最后分区路径
 	struct grub_part_data *next;  				  //下一个
 	unsigned char	drive;									  //驱动器
 	unsigned char	partition_type;					  //MBR分区ID
