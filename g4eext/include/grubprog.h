@@ -1,7 +1,7 @@
-/* thank goodness gcc will place the above 8 bytes at the end of the b.out		Ğ»ÌìĞ»µØ£¬gcc½«ÉÏÊö8¸ö×Ö½Ú·ÅÔÚb.outÎÄ¼şµÄÄ©Î²¡£ÇëÎğÔÚ´Ë´¦²åÈëÈÎºÎÆäËûasm¹ÜÂ·¡£ 
+/* thank goodness gcc will place the above 8 bytes at the end of the b.out		è°¢å¤©è°¢åœ°ï¼Œgccå°†ä¸Šè¿°8ä¸ªå­—èŠ‚æ”¾åœ¨b.outæ–‡ä»¶çš„æœ«å°¾ã€‚è¯·å‹¿åœ¨æ­¤å¤„æ’å…¥ä»»ä½•å…¶ä»–asmç®¡è·¯ã€‚ 
  * file. Do not insert any other asm lines here.
  */
-/* it seems gcc use end and/or _end for __bss_end 	ËÆºõgccÊ¹ÓÃendºÍ/»òend±íÊ¾bss end */
+/* it seems gcc use end and/or _end for __bss_end 	ä¼¼ä¹gccä½¿ç”¨endå’Œ/æˆ–endè¡¨ç¤ºbss end */
 #if 1
 	#define	__BSS_END	end
 #else
@@ -20,38 +20,38 @@
 extern int __BSS_END;
 extern int __BSS_START;
 
-unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment.  'GRUB4DOS'ÕâÊÇ±ØĞèµÄ£¬Çë²ÎÔÄÒÔÏÂÃüÁî */
-/* gcc treat the following as data only if a global initialization like the		gcc½öÔÚ·¢ÉúÓëÉÏÊöĞĞÀàËÆµÄÈ«¾Ö³õÊ¼»¯Ê±²Å½«ÒÔÏÂÄÚÈİÊÓÎªÊı¾İ¡£
+unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment.  'GRUB4DOS'è¿™æ˜¯å¿…éœ€çš„ï¼Œè¯·å‚é˜…ä»¥ä¸‹å‘½ä»¤ */
+/* gcc treat the following as data only if a global initialization like the		gccä»…åœ¨å‘ç”Ÿä¸ä¸Šè¿°è¡Œç±»ä¼¼çš„å…¨å±€åˆå§‹åŒ–æ—¶æ‰å°†ä»¥ä¸‹å†…å®¹è§†ä¸ºæ•°æ®ã€‚
  * above line occurs.
  */
 
-/* The 40-byte space is structured. 40×Ö½Ú¿Õ¼äÊÇ½á¹¹»¯µÄ */
-asm(".long main");		/* actually not used for now Êµ¼ÊÉÏÔİÊ±²»ÓÃ */ //
-asm(".long .text");		/* actually not used for now */
-asm(".long etext");		/* actually not used for now */
-asm(".long .data");		/* actually not used for now */
-asm(".long edata");		/* actually not used for now */
-asm(".long __bss_start");	/* actually not used for now */
-asm(".long .bss");		/* actually not used for now */
-asm(".long end");		/* this is the process end ÕâÊÇ½ø³Ì½áÊø*/
-asm(".ascii \"uefi_end\""); //uefi°æ±¾Ç©Ãû
+/* The 40-byte space is structured. 40å­—èŠ‚ç©ºé—´æ˜¯ç»“æ„åŒ–çš„ */
+asm(".long main");          //ç¨‹åºå…¥å£           4000e8
+asm(".long .text");         //ç¨‹åºæ®µèµ·å§‹         4000e8
+asm(".long etext");         //æ‰©å±•ç¨‹åºæ®µèµ·å§‹     402da4
+asm(".long .data");         //æ•°æ®æ®µèµ·å§‹         403890
+asm(".long edata");         //æ‰©å±•æ•°æ®æ®µèµ·å§‹     4038e8
+asm(".long __bss_start");   //bssæ®µèµ·å§‹          4038e8  __bss_start - .text = ä»£ç å°ºå¯¸
+asm(".long .bss");          //                   403900
+asm(".long end");           //è¿›ç¨‹ç»“æŸ           4039b8  end -  .text = ç¨‹åºå®é™…éœ€æ±‚ç©ºé—´å°ºå¯¸
+asm(".ascii \"uefi_end\""); //uefiç‰ˆæœ¬ç­¾å
 
-/* Don't insert any code/data here! ²»ÒªÔÚÕâÀï²åÈëÈÎºÎ´úÂë/Êı¾İ£¡*/
-/* these 16 bytes can be used for any purpose. Õâ16¸ö×Ö½Ú¿ÉÒÔÓÃÓÚÈÎºÎÄ¿µÄ*/
+/* Don't insert any code/data here! ä¸è¦åœ¨è¿™é‡Œæ’å…¥ä»»ä½•ä»£ç /æ•°æ®ï¼*/
+/* these 16 bytes can be used for any purpose. è¿™16ä¸ªå­—èŠ‚å¯ä»¥ç”¨äºä»»ä½•ç›®çš„*/
 asm(".long 0");
 asm(".long 0");
 asm(".long 0");
 asm(".long 0");
 
-/* Don't insert any code/data here! ²»ÒªÔÚÕâÀï²åÈëÈÎºÎ´úÂë/Êı¾İ*/
+/* Don't insert any code/data here! ä¸è¦åœ¨è¿™é‡Œæ’å…¥ä»»ä½•ä»£ç /æ•°æ®*/
 
-/* a valid executable file for grub4dos must end with these 8 bytes     grub4dosµÄÓĞĞ§¿ÉÖ´ĞĞÎÄ¼ş±ØĞëÒÔÕâ8×Ö½Ú½áÎ² */
-//grub4dosÍâ²¿ÃüÁî½áÊøÇ©Ãû
+/* a valid executable file for grub4dos must end with these 8 bytes     grub4dosçš„æœ‰æ•ˆå¯æ‰§è¡Œæ–‡ä»¶å¿…é¡»ä»¥è¿™8å­—èŠ‚ç»“å°¾ */
+//grub4doså¤–éƒ¨å‘½ä»¤ç»“æŸç­¾å
 asm(".long 0x03051805");
 asm(".long 0xBCBAA7BA");
 
 asm(".globl _start");
 asm("_start:");
-/* thank goodness gcc will place the above 8 bytes at the end of the program		Ğ»ÌìĞ»µØ£¬gcc»á°ÑÉÏÃæµÄ8¸ö×Ö½Ú·ÅÔÚ³ÌĞòÎÄ¼şµÄÄ©Î²¡£ÇëÎğÔÚ´Ë´¦²åÈëÈÎºÎÆäËûasm¹ÜÂ·¡£ 
+/* thank goodness gcc will place the above 8 bytes at the end of the program		è°¢å¤©è°¢åœ°ï¼Œgccä¼šæŠŠä¸Šé¢çš„8ä¸ªå­—èŠ‚æ”¾åœ¨ç¨‹åºæ–‡ä»¶çš„æœ«å°¾ã€‚è¯·å‹¿åœ¨æ­¤å¤„æ’å…¥ä»»ä½•å…¶ä»–asmç®¡è·¯ã€‚ 
  * file. Do not insert any other asm lines here.
  */

@@ -99,6 +99,7 @@ typedef enum
 } grub_error_t;
 
 #define install_partition (*(unsigned long long *)0x8208)
+#define HOTKEY_FUNC (*(int*)0x8260)
 #define boot_drive (*(unsigned long long *)0x8280)
 #define pxe_yip (*(unsigned long *)0x8284)
 #define pxe_sip (*(unsigned long *)0x8288)
@@ -189,6 +190,9 @@ typedef enum
 
 #define sprintf ((int (*)(char *, const char *, ...))((*(int **)0x8300)[0]))
 #define printf(...) sprintf(NULL, __VA_ARGS__)
+#define printf_debug(...) sprintf((char*)2, __VA_ARGS__)
+#define printf_errinfo(...) sprintf((char*)3, __VA_ARGS__)
+#define printf_warning(...) sprintf((char*)2, __VA_ARGS__)
 #define putstr ((void (*)(const char *))((*(int **)0x8300)[1]))
 #define putchar ((void (*)(int))((*(int **)0x8300)[2]))
 #define get_cmdline_obsolete ((int (*)(struct get_cmdline_arg cmdline))((*(int **)0x8300)[3]))

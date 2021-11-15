@@ -44,7 +44,7 @@ typedef struct
 {
     int key_code;
     char *cmd;
-} hotkey_c;
+} __attribute__ ((packed)) hotkey_c;
 
 union
 {
@@ -62,12 +62,11 @@ typedef struct
     int cmd_pos;
     hotkey_c hk_cmd[64];
     char cmd[4096];
-} hkey_data_t;
+} __attribute__ ((packed)) hkey_data_t;
 
 #define CHECK_F11 0
 #define HOTKEY_MAGIC 0X79654B48
 #define HOTKEY_PROG_MEMORY	0x2000000-0x200000
-#define HOTKEY_FUNC *(int*)0x827C
 #define HOTKEY_FLAGS_AUTO_HOTKEY (1<<12)
 #define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)
 #define HOTKEY_FLAGS_NOT_CONTROL (1<<13)
@@ -185,7 +184,8 @@ static int check_allow_key(unsigned short key);
 /* gcc treat the following as data only if a global initialization like the
  * above line occurs.
  */
-static hkey_data_t hotkey_data = {0,{0,NULL}};//HOTKEY 数据保留区
+//static hkey_data_t hotkey_data = {0,{0,NULL}};//HOTKEY 数据保留区
+static hkey_data_t hotkey_data;//HOTKEY 数据保留区  由.data移动到.bss
 static int hotkey_cmd_flag = HOTKEY_MAGIC;//程序尾部标志
 
 /* this is needed, see the comment in grubprog.h */
@@ -200,15 +200,19 @@ int main(char *arg,int flags,int flags1)
 	static hotkey_t *hotkey;
 	unsigned short hotkey_flags;
 	unsigned short *p_hotkey_flags;
+	int exist_key;
+	int disabled_key;
+	int delete_key;
+
 	base_addr = (char *)(init_free_mem_start+512);
 	hotkey = (hotkey_t*)base_addr;
-	p_hotkey_flags = (unsigned short*)(base_addr + 508);
+	p_hotkey_flags = (unsigned short*)(base_addr + 504);
+#define HOTKEY_FLAGS (*(unsigned short*)(base_addr + 500))
 	cur_menu_flag.flags = flags1;
 
   if (HOTKEY_FUNC)
   {
-    hotkey_flags = *(unsigned short *)(init_free_mem_start + 0x40e00 - 2);
-    *p_hotkey_flags = hotkey_flags;
+    hotkey_flags = HOTKEY_FLAGS;
   }
 	if (flags == HOTKEY_MAGIC)
 	{
@@ -227,7 +231,7 @@ int main(char *arg,int flags,int flags1)
 		{
 		    return getkey();
 		}
-		hotkey_flags = *p_hotkey_flags;
+		hotkey_flags = HOTKEY_FLAGS;
 		#if CHECK_F11
 		c = get_key();
 		#else
@@ -258,14 +262,13 @@ int main(char *arg,int flags,int flags1)
 				 if (current_term->SETCOLORSTATE)
 				    current_term->SETCOLORSTATE(COLOR_STATE_STANDARD);
 				cls();
-				if (debug > 0)
-				    printf(" Hotkey Boot: %s\n",hkc[i].cmd);
+				    printf_debug(" Hotkey Boot: %s\n",hkc[i].cmd);
 			    }
 			    builtin_cmd(NULL,hkc[i].cmd,BUILTIN_CMDLINE);
 			}
 			if (putchar_hooked == 0 && errnum > ERR_NONE && errnum < MAX_ERR_NUM)
 			{
-			    printf("\nError %u\n",errnum);
+			    printf_errinfo("\nError %u\n",errnum);
 			    getkey();
 			}
 			errnum = err_old;
@@ -355,10 +358,10 @@ int main(char *arg,int flags,int flags1)
 		hotkey->key_code = 0;
 		return 1;
 	}
-	if (debug > 0)
-	    printf("Hotkey for grub4dos by chenall,%s\n",__DATE__);
+  
 	if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg))
 	{
+    printf("Hotkey for grub4dos by chenall,%s\n",__DATE__);
     printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
     printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
     printf("      \thotkey -u\tunload hotkey.\n");
@@ -370,95 +373,96 @@ int main(char *arg,int flags,int flags1)
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
 	}
 	hotkey_flags = 1<<15;
-	while (*arg == '-')
-	{
-		++arg;
-		if (*(unsigned short*)arg == 0x626E) //nb not boot
-			hotkey_flags |= HOTKEY_FLAGS_NOT_BOOT;
-		else if (*(unsigned short*)arg == 0x636E) //nc not control
-			hotkey_flags |= HOTKEY_FLAGS_NOT_CONTROL;
-		else if (*arg == 'A')
-		{
-			hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
-		}
-		else if (*arg == 'u')
-		{
-			HOTKEY_FUNC = 0;
-      memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
-			return builtin_cmd("delmod","hotkey",flags);
-		}
-		arg = wee_skip_to(arg,0);
-	}
 
 	if (!HOTKEY_FUNC)
 	{
-		int buff_len;
-		char *p = (char *)&main;
+		int buff_len = 0x4000;
+		memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 //		buff_len = (unsigned int)&__BSS_END - (unsigned int)&main;
-		buff_len = 0x4000;
 		#if CHECK_F11
 		if (check_f11())//检测BIOS是否支持F11,F12热键，如果有支持直接使用getkey函数取得按键码
 		{
 			_checkkey_ = 1;
-			printf("Current BIOS supported F11,F12 key.\n");
+			printf_debug("Current BIOS supported F11,F12 key.\n");
 		}
 		else
 		{
 			_checkkey_ = 0;
-			printf("Current BIOS Does not support F11,F12 key,try to hack it.\n");
+			printf_debug("Current BIOS Does not support F11,F12 key,try to hack it.\n");
 		}
 		#endif
-		*p_hotkey_flags = hotkey_flags;
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		my_app_id = HOTKEY_MAGIC;
-		memmove((void*)HOTKEY_PROG_MEMORY,p,buff_len);
+		memmove((void*)HOTKEY_PROG_MEMORY,&main,buff_len);
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
 		HOTKEY_FUNC = HOTKEY_PROG_MEMORY;
-    *(unsigned short *)(init_free_mem_start + 0x40e00 - 2) = hotkey_flags;
-		//获取程序执行时的路径的文件名。
-		//p = p-*(int*)(p-16);
-		//strncat(p," hotkey",-1);
-		//builtin_cmd("insmod",p,flags);
-		i = ((int(*)(char*,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC);//获取HOTKEY数据位置并作一些初使化
-		if (debug > 0)
-		{
-		    printf("Hotkey Installed!\n");
-		}
+		HOTKEY_FLAGS = hotkey_flags;
+		char* arg_bak = arg;
+		((int(*)(char*,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC);//获取HOTKEY数据位置并作一些初使化
+		arg = arg_bak;
+		printf_debug("Hotkey Installed!\n");
 	}
-	else
-		*p_hotkey_flags |= hotkey_flags;
+//	else
+//		*p_hotkey_flags |= hotkey_flags;
 
 	if (arg)
 	{
+    while (*arg == '-')
+    {
+      ++arg;
+      if (*(unsigned short*)arg == 0x626E) //nb not boot
+        hotkey_flags |= HOTKEY_FLAGS_NOT_BOOT;
+      else if (*(unsigned short*)arg == 0x636E) //nc not control
+        hotkey_flags |= HOTKEY_FLAGS_NOT_CONTROL;
+      else if (*arg == 'A')
+      {
+        hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
+      }
+      else if (*arg == 'u')
+      {
+        HOTKEY_FUNC = 0;
+        hotkey_flags = 0;
+        HOTKEY_FLAGS = 0;
+//			return builtin_cmd("delmod","hotkey",flags);
+        return;
+      }
+      else
+        hotkey_flags = 1<<15;
+      arg = wee_skip_to(arg,0);
+      HOTKEY_FLAGS = hotkey_flags;
+    }
 	    hkey_data_t *hkd = ((hkey_data_t*(*)(char*,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC);
 	    hotkey_c *hkc = hkd->hk_cmd;
 
 	    while (*arg && *arg <= ' ')
 		++arg;
     	    int key_code,cmd_len;
-    	    int exist_key = -1;
-    	    int disabled_key = -1;
     	    if (*arg != '[')//显示当前已注册热键
     	    {
 		if (!(flags & BUILTIN_CMDLINE) || debug < 1)//必须在命令行下并且DEBUG 非 OFF 模式才会显示
 		    return 1;
-		if (debug > 1)
-		    printf("hotkey_data_addr: 0x%X\n",hkd);
+		printf_debug("hotkey_data_addr: 0x%X\n",hkd);
 		if (hkc->key_code)
-		    printf("Current registered hotkey:\n");
+      printf_debug("Current registered hotkey:\n");
 		while(hkc->key_code)
 		{
 		    if (hkc->key_code != -1)
 		    {
-			if (debug > 1)
-			    printf("0x%X ",hkc->cmd);
-			printf("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
+			    printf_debug("0x%X ",hkc->cmd);
+			    printf_debug("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
 		    }
 		    ++hkc;
 		}
 		return -1;
 	    }
-
+    if (arg[1] == ']')  //[] 删除热键数据
+    {
+      memset ((void *)hkd, 0, sizeof(hkey_data_t));
+      arg +=2;
+      while (*arg && *arg <= ' ') //跳过空格
+        ++arg;
+      goto test_end;
+    }
 test:
 	    key_code = check_hotkey(&arg,0);
     	    if (!key_code)
@@ -471,6 +475,9 @@ test:
 	    while (*arg && *arg <= ' ')
 		++arg;
 
+    exist_key = -1;
+    disabled_key = -1;
+    delete_key = -1;
 	    if (*arg == '"')
 	    {
 #if 1
@@ -494,7 +501,10 @@ test:
 		}
 #endif
 		}
-
+    else  //如果没有命令, 是删除指定热键
+    {
+      delete_key = 1;
+    }
 #if 1
     cmd_len++;  //命令尺寸加终止符
 #else
@@ -505,11 +515,18 @@ test:
 			if (!hkc[i].key_code)           //无键代码, 退出
 		    break;
 		if (hkc[i].key_code == key_code)
+		{
 		    exist_key = i;
+        break;                        //全部搜索,不能处理第二个中括号. 找到后必须退出.
+		}
 		else if (hkc[i].key_code == -1)
 		    disabled_key = i;
 	    }
 
+    if (exist_key != -1 && delete_key != -1)    //如果键存在,并且要删除
+    {
+      hkc[exist_key].key_code = -1;             //设置禁用键代码
+    }
 	    if (disabled_key != -1 && exist_key == -1)
 	    {//有禁用的热键,直接使用该位置
 		exist_key = disabled_key;
@@ -518,17 +535,15 @@ test:
 
 	    if (i==64 && exist_key == -1)
 	    {
-		printf("Max 64 hotkey cmds limit!");
+		printf_errinfo("Max 64 hotkey cmds limit!");
 		return 0;
 	    }
-#if 0   //不能处理第二个中括号
 	    if (exist_key != -1)//已经存在
 	    {
-		if (strlen(hkc[exist_key].cmd) >= cmd_len)//新的命令长度没有超过旧命令长度
+		if (strlen(hkc[exist_key].cmd) >= cmd_len-1)//新的命令长度没有超过旧命令长度
 		   i = -1;
 	    }
 	    else//新增热键
-#endif
 	    {
     		exist_key = i;
 		hkc[i].key_code = key_code;
@@ -542,7 +557,7 @@ test:
 
 	    if (hkd->cmd_pos + cmd_len >= sizeof(hkd->cmd))
 	    {
-		printf("error: not enough space!\n");
+		printf_errinfo("error: not enough space!\n");
 		return 0;
 	    }
 	    
@@ -554,8 +569,7 @@ test:
 
 	    memmove(hkc[exist_key].cmd,arg,cmd_len );
 
-	    if (debug > 0)
-		printf("%d [%s] registered!\n",exist_key,get_keyname(key_code));
+		printf_debug("%d [%s] registered!\n",exist_key,get_keyname(key_code));
     while (*arg >= ' ')  //检测终止符,回车换行
 			arg++;
     if (*arg) //如果是回车换行,结束
@@ -563,6 +577,7 @@ test:
     arg++;  //跳过终止符
     while (*arg >= ' ' && *arg != '[') //探测中括号
       arg++;
+test_end:
     if (*arg == '[')
       goto test;
     return 1;

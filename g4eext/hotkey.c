@@ -171,7 +171,6 @@ static int check_allow_key(unsigned short key);
 //static hkey_data_t hotkey_data = {0};	//HOTKEY 数据保留区
 static hkey_data_t hotkey_data;	//HOTKEY 数据保留区
 static int hotkey_cmd_flag = HOTKEY_MAGIC;			//程序尾部标志
-static char *HOTKEY_PROG_MEMORY;
 static grub_size_t g4e_data = 0;
 static void get_G4E_image(void);
 
@@ -198,14 +197,18 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 	static hotkey_t *hotkey;
 	unsigned short hotkey_flags;
 	unsigned short *p_hotkey_flags;
+	int exist_key;
+	int disabled_key;
+	int delete_key;
 	base_addr = (char *)(menu_mem + 512); //eb98980   menu_mem=eb98780
 	hotkey = (hotkey_t*)base_addr;
 	p_hotkey_flags = (unsigned short*)(base_addr + 504);  //eb98d7c
+#define HOTKEY_FLAGS (*(unsigned short*)(base_addr + 500))
 	cur_menu_flag.flags = flags1;
 
   if (HOTKEY_FUNC)
   {
-    hotkey_flags = HOTKEY_FLAG;
+    hotkey_flags = HOTKEY_FLAGS;
   }
 	if (flags == HOTKEY_MAGIC)	//首次加载热键时，以及首次处理热键参数时被调用
 	{
@@ -226,7 +229,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			return key;
 
 //		hotkey_flags = *p_hotkey_flags;
-    hotkey_flags = HOTKEY_FLAG;
+    hotkey_flags = HOTKEY_FLAGS;
     c = key & 0xf00ffff;
 		if (!c || check_allow_key(c))	//检测当前的按键码是否方向键或回车键, 是则返回
 			return c;
@@ -346,10 +349,9 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		return 1;
 	}
 
-  printf_debug("Hotkey for grub4efi by chenall (renew by yaya),%s\n",__DATE__);
-
   if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg)) //帮助信息
   {
+    printf("Hotkey for grub4efi by chenall (renew by yaya),%s\n",__DATE__);
     printf("Usage:\n\thotkey -nb\tonly selected menu when press menu hotkey\n\thotkey -nc\tdisable control key\n");
     printf("      \thotkey -A\tselect the menu item with the first letter of the menu\n");
     printf("      \thotkey -u\tunload hotkey.\n");
@@ -361,37 +363,12 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
   }
 	hotkey_flags = 1<<15;
-	while (*arg == '-') //处理热键参数中的'-'号.  如: hotkey -A, -u, -nb, -nc
-	{
-		++arg;
-		if (*(unsigned short*)arg == 0x626E) //nb not boot
-			hotkey_flags |= HOTKEY_FLAGS_NOT_BOOT;
-		else if (*(unsigned short*)arg == 0x636E) //nc not control
-			hotkey_flags |= HOTKEY_FLAGS_NOT_CONTROL;
-		else if (*arg == 'A')
-		{
-			hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
-		}
-		else if (*arg == 'u')
-		{
-      if (HOTKEY_FUNC)
-      {
-        free ((void *)HOTKEY_FUNC);
-        HOTKEY_FUNC = 0;
-        hotkey_flags = 0;
-        HOTKEY_FLAG = 0;
-        memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
-      }
-			return builtin_cmd("delmod","hotkey",flags);
-		}
-		arg = wee_skip_to(arg,0);
-	}
 
 	if (!HOTKEY_FUNC) //首次加载热键，初始化
 	{
 		int buff_len = 0x4000;
 //		*p_hotkey_flags = hotkey_flags;
-    HOTKEY_FLAG = hotkey_flags;
+    HOTKEY_FLAGS = hotkey_flags;
     memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		//本程序由command加载, 执行完毕就释放了，因此需要为热键单独分配内存。
@@ -402,15 +379,45 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		memmove((void*)HOTKEY_FUNC,&main,buff_len);
 
 		//获取程序执行时的路径的文件名。
+		char* arg_bak = arg;
     ((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC,0,0);//获取新HOTKEY数据位置并作一些初使化
+		arg = arg_bak;
 		printf_debug("Hotkey Installed!\n");
 	}
-	else
+//	else
 //		*p_hotkey_flags |= hotkey_flags;
-    HOTKEY_FLAG |= hotkey_flags;
+//    HOTKEY_FLAG |= hotkey_flags;
 
 	if (arg)  //处理热键参数的中括号
 	{
+    while (*arg == '-') //处理热键参数中的'-'号.  如: hotkey -A, -u, -nb, -nc
+    {
+      ++arg;
+      if (*(unsigned short*)arg == 0x626E) //nb not boot
+        hotkey_flags |= HOTKEY_FLAGS_NOT_BOOT;
+      else if (*(unsigned short*)arg == 0x636E) //nc not control
+        hotkey_flags |= HOTKEY_FLAGS_NOT_CONTROL;
+      else if (*arg == 'A')
+      {
+        hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
+      }
+      else if (*arg == 'u')
+      {
+        if (HOTKEY_FUNC)
+        {
+          free ((void *)HOTKEY_FUNC);
+          HOTKEY_FUNC = 0;
+          hotkey_flags = 0;
+          HOTKEY_FLAGS = 0;
+        }
+//			return builtin_cmd("delmod","hotkey",flags);
+        return;
+      }
+      else
+        hotkey_flags = 1<<15;
+      arg = wee_skip_to(arg,0);
+      HOTKEY_FLAGS = hotkey_flags;
+    }
     //本程序由command加载时, 热键数据是空白, 必须由热键备份内存获取.
     hkey_data_t *hkd =(hkey_data_t *)((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC,0,0); //热键数据地址
 		hotkey_c *hkc = hkd->hk_cmd;
@@ -418,8 +425,6 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		while (*arg && *arg <= ' ')
 			++arg;
 		int key_code,cmd_len;
-		int exist_key = -1;     //存在的键
-		int disabled_key = -1;  //禁用的键
 		if (*arg != '[')//显示当前已注册热键
 		{
 			if (!(flags & BUILTIN_CMDLINE) || debug < 1)//必须在命令行下并且DEBUG 非 OFF 模式才会显示
@@ -438,7 +443,14 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			}
 			return -1;
 		}
-
+    if (arg[1] == ']')  //[] 删除热键数据
+    {
+      memset ((void *)hkd, 0, sizeof(hkey_data_t));
+      arg +=2;
+      while (*arg && *arg <= ' ') //跳过空格
+        ++arg;
+      goto test_end;
+    }
 test:
 		key_code = check_hotkey(&arg,0);  //获得热键参数中的中括号. 如: hotkey [F4] "commandlien"
 
@@ -452,6 +464,9 @@ test:
 		while (*arg && *arg <= ' ') //跳过空格
 			++arg;
 
+		exist_key = -1;
+		disabled_key = -1;
+		delete_key = -1;
 		if (*arg == '"')  //取命令
 		{
 #if 1
@@ -475,7 +490,10 @@ test:
 			}
 #endif
 		}
-
+    else  //如果没有命令, 是删除指定热键
+    {
+      delete_key = 1;
+    }
 #if 1
     cmd_len++;  //命令尺寸加终止符
 #else
@@ -487,9 +505,16 @@ test:
 			if (!hkc[i].key_code)           //无键代码, 退出
 		    break;
 			if (hkc[i].key_code == key_code)//键代码相等, 存在的键=i
+			{
 		    exist_key = i;
+		    break;                        //全部搜索,不能处理第二个中括号. 找到后必须退出.
+			}
 			else if (hkc[i].key_code == -1) //如果键代码=-1
 		    disabled_key = i;             //禁用的键=i
+		}
+		if (exist_key != -1 && delete_key != -1)    //如果键存在,并且要删除
+		{
+			hkc[exist_key].key_code = -1;             //设置禁用键代码
 		}
 		if (disabled_key != -1 && exist_key == -1)  //如果有禁用的键,也有存在的键
 		{//有禁用的热键,直接使用该位置
@@ -501,14 +526,12 @@ test:
 			printf_errinfo("Max 64 hotkey cmds limit!");
 			return 0;
 		}
-#if 0   //不能处理第二个中括号
 		if (exist_key != -1)//已经存在
 		{
 			if (strlen(hkc[exist_key].cmd) >= cmd_len)//新的命令长度没有超过旧命令长度
 				i = -1;
 		}
 		else//新增热键
-#endif
 		{
 			exist_key = i;
 			hkc[i].key_code = key_code;
@@ -537,6 +560,7 @@ test:
     arg++;  //跳过终止符
     while (*arg >= ' ' && *arg != '[') //探测中括号
       arg++;
+test_end:
     if (*arg == '[')
       goto test;
     return 1;
