@@ -212,6 +212,11 @@ static int main (char *arg,int key)
   get_G4E_image ();
   if (! g4e_data)
     return 0;
+  if (*(unsigned int *)IMG(0x8278) < 20220315)
+  {
+    printf("Please use grub4efi version above 2022-03-15.\n");
+    return 0;
+  }
   st = grub_efi_system_table;
   ih = grub_efi_image_handle;
   bs = st->boot_services;
@@ -247,7 +252,7 @@ static int main (char *arg,int key)
   if (! *arg || *arg == ' ' || *arg == '\t' || ! set_device (arg))
     current_drive = saved_drive;
 
-  d = get_device_by_drive (current_drive);
+  d = get_device_by_drive (current_drive,0);
   if (! d)
   {
     printf ("ERROR: GRUB disk data not found.\n");

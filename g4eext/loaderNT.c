@@ -87,6 +87,11 @@ static int main(char *arg,int flags)
   if (! g4e_data)
     return 0;
 
+  if (*(unsigned int *)IMG(0x8278) < 20220315)
+  {
+    printf("Please use grub4efi version above 2022-03-15.\n");
+    return 0;
+  }
   memset((void *)&args, 0, sizeof(args));
   arg = skip_to(0x200,filename);
   char *suffix = &filename[strlen (filename) - 3]; //取尾缀
@@ -139,11 +144,11 @@ static void get_G4E_image(void)
   grub_size_t i;
 
   //在内存0-0x9ffff, 搜索特定字符串"GRUB4EFI"，获得GRUB_IMGE
-  for (i = 0x40120; i <= 0x9f120 ; i += 0x1000)
+  for (i = 0x40100; i <= 0x9f100 ; i += 0x1000)
   {
     if (*(unsigned long long *)i == 0x4946453442555247)	//比较数据 "GRUB4EFI"
     {
-      g4e_data = *(grub_size_t *)(i+8); //GRUB4DOS_for_UEFI入口
+      g4e_data = *(grub_size_t *)(i+16); //GRUB4DOS_for_UEFI入口
       return;
     }
   }
@@ -358,12 +363,11 @@ static int modify_bcd (char *filename, char *bcdname, int flags) //修改bcd
   {
     filename = set_device (filename);
     p = get_partition_info (current_drive, current_partition);
-    d = get_device_by_drive (current_drive);
+    d = get_device_by_drive (current_drive,0);
     goto qwer;
   }
-
   p = get_partition_info (saved_drive, saved_partition);
-  d = get_device_by_drive (saved_drive);
+  d = get_device_by_drive (saved_drive,0);
 qwer:
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
@@ -393,7 +397,7 @@ qwer:
   run_line ("find --set-root /loaderNT", flags);    //设置根到(hd-1)
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
-  d = get_device_by_drive (current_drive);
+  d = get_device_by_drive (current_drive,0);
   p = get_partition_info (current_drive, current_partition);
   status = vdisk_install (current_drive, current_partition);  //安装虚拟磁盘
   if (status != EFI_SUCCESS)

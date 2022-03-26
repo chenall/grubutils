@@ -264,7 +264,7 @@ typedef enum
 #define open ((int (*)(char *))(SYSFUN(26)))
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned int))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
-#define get_device_by_drive ((struct grub_disk_data *(*)(unsigned int drive))(SYSFUN(29)))
+#define get_device_by_drive ((struct grub_disk_data *(*)(unsigned int drive, unsigned int map))(SYSFUN(29)))
 #define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned int write))(SYSFUN(31)))
 #define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned int write))(SYSFUN(32)))
 #define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
@@ -521,28 +521,32 @@ typedef __builtin_va_list __gnuc_va_list;
 struct grub_disk_data  //efi磁盘数据	(软盘,硬盘,光盘)
 {
   efi_handle_t device_handle;               //句柄
-  efi_device_path_t *device_path;           //设备路径        类型,子类型,长度
-  efi_device_path_t *last_device_path;      //最后设备路径    类型,子类型,长度
+//  efi_device_path_t *device_path;           //设备路径        类型,子类型,长度
+//  efi_device_path_t *last_device_path;      //最后设备路径    类型,子类型,长度
   efi_block_io_t *block_io;                 //块输入输出      修订,媒体,重置,读块,写块,清除块
   struct grub_disk_data *next;              //下一个
   unsigned char drive;                      //from驱动器
   unsigned char to_drive;                   //to驱动器                  原生磁盘为0
   unsigned char from_log2_sector;           //from每扇区字节2的幂
   unsigned char to_log2_sector;             //to每扇区字节2的幂         原生磁盘为0
-  unsigned long long start_sector;          //起始扇区                  原生磁盘为0
-  unsigned long long sector_count;          //总扇区数
+  unsigned long long start_sector;          //起始扇区                  原生磁盘为0  from在to的起始扇区  每扇区字节=(1 << to_log2_sector)
+  unsigned long long sector_count;          //扇区计数                  原生磁盘为0  from在to的扇区数    每扇区字节=(1 << to_log2_sector)
+  unsigned long long total_sectors;         //总扇区数                  from驱动器的总扇区数  每扇区字节=(1 << from_log2_sector)
   unsigned char disk_signature[16];         //磁盘签名        软盘/光盘或略  启动wim/vhd需要  mbr类型同分区签名,gpt类型则异样
   unsigned short to_block_size;             //to块尺寸
   unsigned char partmap_type;               //磁盘类型        1/2=MBR/GPT
   unsigned char fragment;                   //碎片
   unsigned char read_only;                  //只读
+  unsigned char disk_type;                  //磁盘类型        0/1/2=光盘/硬盘/软盘
+  unsigned char cd_boot_floppy;             //光盘引导软盘号             原生磁盘为0
+  unsigned char fill;                       //填充
 } __attribute__ ((packed));
 
 struct grub_part_data  //efi分区数据	(硬盘)
 {
-	efi_handle_t part_handle;               //句柄
-	efi_device_path_t *part_path;           //分区路径
-	efi_device_path_t *last_part_path;      //最后分区路径
+//	efi_handle_t part_handle;               //句柄
+//	efi_device_path_t *part_path;           //分区路径
+//	efi_device_path_t *last_part_path;      //最后分区路径
 	struct grub_part_data *next;  				  //下一个
 	unsigned char	drive;									  //驱动器
 	unsigned char	partition_type;					  //MBR分区ID          EE是gpt分区类型
