@@ -70,7 +70,8 @@ static int main (char *arg,int key)
     return 0;
   }
   /* perform cold reset */
-  rt->reset_system (EFI_RESET_WARM, EFI_SUCCESS, 0, NULL);
+//  rt->reset_system (EFI_RESET_WARM, EFI_SUCCESS, 0, NULL);
+  rt->reset_system (EFI_RESET_COLD, EFI_SUCCESS, 0, NULL);
 
   return 1;
 }
