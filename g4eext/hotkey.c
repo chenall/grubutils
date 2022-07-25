@@ -69,6 +69,7 @@ union
 
 typedef struct
 {
+    int flags;
     int cmd_pos;					//命令位置
     hotkey_c hk_cmd[64];	//热键字符数组
     char cmd[4096];				//命令
@@ -76,7 +77,7 @@ typedef struct
 
 #define HOTKEY_MAGIC 0X79654B48						//魔术
 #define HOTKEY_FLAGS_AUTO_HOTKEY (1<<12)	//热键标志	自动热键		1000
-#define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)	//热键标志	自动热键1		800
+//#define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)	//热键标志	自动热键1		800
 #define HOTKEY_FLAGS_NOT_CONTROL (1<<13)	//热键标志	不控制			2000    -nc
 #define HOTKEY_FLAGS_NOT_BOOT	 (1<<14)		//热键标志	不启动			4000    -nb
 #define BUILTIN_CMDLINE		0x1	/* Run in the command-line.  	运行在命令行=1	*/
@@ -159,7 +160,7 @@ static unsigned short allow_key[9] = {	//方向键
 /*KEY_NPAGE       */0x5100
 };
 static int my_app_id = 0;
-static int _checkkey_ = 0;
+//static int _checkkey_ = 0;
 static char keyname_buf[16];
 static int get_keycode (char *key, int flags);
 static int check_hotkey(char **title,int flags);
@@ -168,7 +169,6 @@ static int check_allow_key(unsigned short key);
 /* gcc treat the following as data only if a global initialization like the		gcc仅在发生与上述行类似的全局初始化时才将以下内容视为数据。
  * above line occurs.
  */
-//static hkey_data_t hotkey_data = {0};	//HOTKEY 数据保留区
 static hkey_data_t hotkey_data;	//HOTKEY 数据保留区
 static int hotkey_cmd_flag = HOTKEY_MAGIC;			//程序尾部标志
 static grub_size_t g4e_data = 0;
@@ -195,27 +195,26 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
   int i;
 	char *base_addr;
 	static hotkey_t *hotkey;
-	unsigned short hotkey_flags;
-	unsigned short *p_hotkey_flags;
+//	unsigned short hotkey_flags;
+  int hotkey_flags;
+//	unsigned short *p_hotkey_flags;
 	int exist_key;
 	int disabled_key;
 	int delete_key;
 	base_addr = (char *)(menu_mem + 512); //eb98980   menu_mem=eb98780
 	hotkey = (hotkey_t*)base_addr;
-	p_hotkey_flags = (unsigned short*)(base_addr + 504);  //eb98d7c
-#define HOTKEY_FLAGS (*(unsigned short*)(base_addr + 500))
+//	p_hotkey_flags = (unsigned short*)(base_addr + 504);  //8字节对齐
 	cur_menu_flag.flags = flags1;
+  hkey_data_t *hkd;
+  hotkey_c *hkc; 
 
-  if (HOTKEY_FUNC)
-  {
-    hotkey_flags = HOTKEY_FLAGS;
-  }
 	if (flags == HOTKEY_MAGIC)	//首次加载热键时，以及首次处理热键参数时被调用
 	{
 		if (arg && *(int *)arg == 0x54494E49)	//INIT 初始化数据  首次加载热键时被调用
 		{
 			hotkey_data.hk_cmd[0].cmd = hotkey_data.cmd;
 			hotkey_data.cmd_pos = 0;
+			hotkey_data.flags = 0;
 		}
 		return (grub_size_t)&hotkey_data;//返回热键数据地址
 	}
@@ -229,7 +228,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			return key;
 
 //		hotkey_flags = *p_hotkey_flags;
-    hotkey_flags = HOTKEY_FLAGS;
+    hotkey_flags = hotkey_data.flags;
     c = key & 0xf00ffff;
 		if (!c || check_allow_key(c))	//检测当前的按键码是否方向键或回车键, 是则返回
 			return c;
@@ -273,9 +272,12 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		if ((hotkey_flags & HOTKEY_FLAGS_AUTO_HOTKEY) && (char)c > 0x20)
 		{
 			char h = tolower(c&0xff);	//小写
-			char *old_c_hotkey = (char*)(p_hotkey_flags+1);
-			char *old_t = old_c_hotkey + 1;
-			int find = -1,n = *old_t;
+//			char *old_c_hotkey = (char*)(p_hotkey_flags+1);
+//			char *old_t = old_c_hotkey + 1;
+//			int find = -1,n = *old_t;
+			char old_c_hotkey;
+			char old_t;
+			int find = -1,n = old_t;
 			int cur_sel = -1;
 			char **titles;
 
@@ -287,10 +289,13 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 				cur_sel = cur_menu_flag.k.sel + cur_menu_flag.k.first;
 			titles = (char **)(base_addr + 512);
 
-			if (*old_c_hotkey != h)
+//			if (*old_c_hotkey != h)
+			if (old_c_hotkey != h)
 			{//不同按键清除记录
-        *old_c_hotkey = h;
-				n = *old_t = 0;
+//        *old_c_hotkey = h;
+//				n = *old_t = 0;
+				old_c_hotkey = h;
+				n = old_t = 0;
 			}
 
 			for(i=0;i<256;++i)
@@ -318,8 +323,10 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			}
 			if (find != -1)
 			{
-				if (find != i) *old_t = 1;
-				else (*old_t)++;
+//				if (find != i) *old_t = 1;
+//				else (*old_t)++;
+				if (find != i) old_t = 1;
+				else old_t++;
 				return (hotkey_flags|HOTKEY_FLAGS_NOT_BOOT|find)<<16;
 			}
 			if (h > '9')
@@ -349,6 +356,17 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		return 1;
 	}
 
+  if (*arg == '-' && *(arg+1) == 'u')
+  {
+    if (HOTKEY_FUNC)
+    {
+      free ((void *)HOTKEY_FUNC);
+      HOTKEY_FUNC = 0;
+      hotkey_flags = 0;
+    }
+    return;
+  }
+
   if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg)) //帮助信息
   {
     printf("Hotkey for grub4efi by chenall (renew by yaya),%s\n",__DATE__);
@@ -361,14 +379,32 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
     printf("      \te.g.\ttitle Boot ^Win 10\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
+    
+    if (HOTKEY_FUNC && debug > 1)
+    {
+      hkd = (hkey_data_t *)((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC,0,0); //热键数据地址
+      hkc = hkd->hk_cmd;
+      printf("hotkey_data_addr: 0x%X\n",hkd);
+
+      if (hkc->key_code)
+        printf("Current registered hotkey:\n");
+      while(hkc->key_code)
+      {
+        if (hkc->key_code != -1)
+        {
+          printf("0x%X ",hkc->cmd);
+          printf("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
+        }
+        ++hkc;
+      }  
+    }
+    
+    return;
   }
-	hotkey_flags = 1<<15;
 
 	if (!HOTKEY_FUNC) //首次加载热键，初始化
 	{
 		int buff_len = 0x4000;
-//		*p_hotkey_flags = hotkey_flags;
-    HOTKEY_FLAGS = hotkey_flags;
     memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		//本程序由command加载, 执行完毕就释放了，因此需要为热键单独分配内存。
@@ -384,12 +420,10 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 		arg = arg_bak;
 		printf_debug("Hotkey Installed!\n");
 	}
-//	else
-//		*p_hotkey_flags |= hotkey_flags;
-//    HOTKEY_FLAG |= hotkey_flags;
 
 	if (arg)  //处理热键参数的中括号
 	{
+    hotkey_flags = 1<<15;
     while (*arg == '-') //处理热键参数中的'-'号.  如: hotkey -A, -u, -nb, -nc
     {
       ++arg;
@@ -401,46 +435,19 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
       {
         hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
       }
-      else if (*arg == 'u')
-      {
-        if (HOTKEY_FUNC)
-        {
-          free ((void *)HOTKEY_FUNC);
-          HOTKEY_FUNC = 0;
-          hotkey_flags = 0;
-          HOTKEY_FLAGS = 0;
-        }
-//			return builtin_cmd("delmod","hotkey",flags);
-        return;
-      }
-      else
-        hotkey_flags = 1<<15;
       arg = wee_skip_to(arg,0);
-      HOTKEY_FLAGS = hotkey_flags;
     }
     //本程序由command加载时, 热键数据是空白, 必须由热键备份内存获取.
-    hkey_data_t *hkd =(hkey_data_t *)((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC,0,0); //热键数据地址
-		hotkey_c *hkc = hkd->hk_cmd;
+    hkd = (hkey_data_t *)((grub_size_t(*)(char*,int,int,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC,0,0); //热键数据地址
+    hkc = hkd->hk_cmd;
+//    *p_hotkey_flags |= hotkey_flags;
+    hkd->flags |= hotkey_flags;
 
 		while (*arg && *arg <= ' ')
 			++arg;
 		int key_code,cmd_len;
 		if (*arg != '[')//显示当前已注册热键
 		{
-			if (!(flags & BUILTIN_CMDLINE) || debug < 1)//必须在命令行下并且DEBUG 非 OFF 模式才会显示
-		    return 1;
-		  printf_debug("hotkey_data_addr: 0x%X\n",hkd);
-			if (hkc->key_code)
-		    printf_debug("Current registered hotkey:\n");
-			while(hkc->key_code)
-			{
-		    if (hkc->key_code != -1)
-		    {
-					printf_debug("0x%X ",hkc->cmd);
-					printf_debug("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
-		    }
-		    ++hkc;
-			}
 			return -1;
 		}
     if (arg[1] == ']')  //[] 删除热键数据

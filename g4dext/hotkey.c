@@ -59,6 +59,7 @@ union
 
 typedef struct
 {
+    int flags;
     int cmd_pos;
     hotkey_c hk_cmd[64];
     char cmd[4096];
@@ -68,7 +69,7 @@ typedef struct
 #define HOTKEY_MAGIC 0X79654B48
 #define HOTKEY_PROG_MEMORY	0x2000000-0x200000
 #define HOTKEY_FLAGS_AUTO_HOTKEY (1<<12)
-#define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)
+//#define HOTKEY_FLAGS_AUTO_HOTKEY1 (1<<11)
 #define HOTKEY_FLAGS_NOT_CONTROL (1<<13)
 #define HOTKEY_FLAGS_NOT_BOOT	 (1<<14)
 #define BUILTIN_CMDLINE		0x1	/* Run in the command-line.  */
@@ -198,28 +199,27 @@ int main(char *arg,int flags,int flags1)
 	char *base_addr;
 	char *magic;
 	static hotkey_t *hotkey;
-	unsigned short hotkey_flags;
-	unsigned short *p_hotkey_flags;
+//	unsigned short hotkey_flags;
+	int hotkey_flags;
+//	unsigned short *p_hotkey_flags;
 	int exist_key;
 	int disabled_key;
 	int delete_key;
 
 	base_addr = (char *)(init_free_mem_start+512);
 	hotkey = (hotkey_t*)base_addr;
-	p_hotkey_flags = (unsigned short*)(base_addr + 504);
-#define HOTKEY_FLAGS (*(unsigned short*)(base_addr + 500))
+//	p_hotkey_flags = (unsigned short*)(base_addr + 504);
 	cur_menu_flag.flags = flags1;
+	hkey_data_t *hkd;
+	hotkey_c *hkc; 
 
-  if (HOTKEY_FUNC)
-  {
-    hotkey_flags = HOTKEY_FLAGS;
-  }
 	if (flags == HOTKEY_MAGIC)
 	{
 	    if (arg && *(int *)arg == 0x54494E49)//INIT 初始数数据
 	    {
 		hotkey_data.hk_cmd[0].cmd = hotkey_data.cmd;
 		hotkey_data.cmd_pos = 0;
+		hotkey_data.flags = 0;
 	    }
 	    return (int)&hotkey_data;
 	}
@@ -231,7 +231,7 @@ int main(char *arg,int flags,int flags1)
 		{
 		    return getkey();
 		}
-		hotkey_flags = HOTKEY_FLAGS;
+		hotkey_flags = hotkey_data.flags;
 		#if CHECK_F11
 		c = get_key();
 		#else
@@ -285,9 +285,12 @@ int main(char *arg,int flags,int flags1)
 		if ((hotkey_flags & HOTKEY_FLAGS_AUTO_HOTKEY) && (char)c > 0x20)
 		{
 			char h = tolower(c&0xff);
-			char *old_c = (char*)(p_hotkey_flags+1);
-			char *old_t = old_c + 1;
-			int find = -1,n = *old_t;
+//			char *old_c = (char*)(p_hotkey_flags+1);
+//			char *old_t = old_c + 1;
+//			int find = -1,n = *old_t;
+			char old_c;
+			char old_t;
+			int find = -1,n = old_t;
 			int cur_sel = -1;
 			char **titles;
 			if (*(char*)0x417 & 3)
@@ -298,10 +301,13 @@ int main(char *arg,int flags,int flags1)
 			if (cur_menu_flag.k.flag == 0x4B40)
 				cur_sel = cur_menu_flag.k.sel + cur_menu_flag.k.first;
 			titles = (char **)(base_addr + 512);
-			if (*old_c != h)
+//			if (*old_c != h)
+			if (old_c != h)
 			{//不同按键清除记录
-				*old_c = h;
-				n = *old_t = 0;
+//				*old_c = h;
+//				n = *old_t = 0;
+				old_c = h;
+				n = old_t = 0;
 			}
 			for(i=0;i<256;++i)
 			{
@@ -328,8 +334,10 @@ int main(char *arg,int flags,int flags1)
 			}
 			if (find != -1)
 			{
-				if (find != i) *old_t = 1;
-				else (*old_t)++;
+//				if (find != i) *old_t = 1;
+//				else (*old_t)++;
+				if (find != i) old_t = 1;
+				else old_t++;
 				return (hotkey_flags|HOTKEY_FLAGS_NOT_BOOT|find)<<16;
 			}
 			if (h > '9')
@@ -358,6 +366,17 @@ int main(char *arg,int flags,int flags1)
 		hotkey->key_code = 0;
 		return 1;
 	}
+
+  if (*arg == '-' && *(arg+1) == 'u')
+  {
+    if (HOTKEY_FUNC)
+    {
+      free ((void *)HOTKEY_FUNC);
+      HOTKEY_FUNC = 0;
+      hotkey_flags = 0;
+    }
+    return;
+  }
   
 	if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg))
 	{
@@ -371,8 +390,28 @@ int main(char *arg,int flags,int flags1)
     printf("      \te.g.\ttitle Boot ^Win 10\n\n");
     printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
+        
+    if (HOTKEY_FUNC && debug > 1)
+    {
+      hkd = ((hkey_data_t*(*)(char*,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC);
+      hkc = hkd->hk_cmd;
+      printf("hotkey_data_addr: 0x%X\n",hkd);
+
+      if (hkc->key_code)
+        printf("Current registered hotkey:\n");
+      while(hkc->key_code)
+      {
+        if (hkc->key_code != -1)
+        {
+          printf("0x%X ",hkc->cmd);
+          printf("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
+        }
+        ++hkc;
+      }  
+    }
+    
+    return;
 	}
-	hotkey_flags = 1<<15;
 
 	if (!HOTKEY_FUNC)
 	{
@@ -396,17 +435,15 @@ int main(char *arg,int flags,int flags1)
 		memmove((void*)HOTKEY_PROG_MEMORY,&main,buff_len);
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
 		HOTKEY_FUNC = HOTKEY_PROG_MEMORY;
-		HOTKEY_FLAGS = hotkey_flags;
 		char* arg_bak = arg;
 		((int(*)(char*,int))HOTKEY_FUNC)("INIT",HOTKEY_MAGIC);//获取HOTKEY数据位置并作一些初使化
 		arg = arg_bak;
 		printf_debug("Hotkey Installed!\n");
 	}
-//	else
-//		*p_hotkey_flags |= hotkey_flags;
 
 	if (arg)
 	{
+    hotkey_flags = 1<<15;
     while (*arg == '-')
     {
       ++arg;
@@ -418,41 +455,18 @@ int main(char *arg,int flags,int flags1)
       {
         hotkey_flags |= HOTKEY_FLAGS_AUTO_HOTKEY;
       }
-      else if (*arg == 'u')
-      {
-        HOTKEY_FUNC = 0;
-        hotkey_flags = 0;
-        HOTKEY_FLAGS = 0;
-//			return builtin_cmd("delmod","hotkey",flags);
-        return;
-      }
-      else
-        hotkey_flags = 1<<15;
+
       arg = wee_skip_to(arg,0);
-      HOTKEY_FLAGS = hotkey_flags;
     }
-	    hkey_data_t *hkd = ((hkey_data_t*(*)(char*,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC);
-	    hotkey_c *hkc = hkd->hk_cmd;
+	    hkd = ((hkey_data_t*(*)(char*,int))HOTKEY_FUNC)(NULL,HOTKEY_MAGIC);
+	    hkc = hkd->hk_cmd;
+	    hkd->flags |= hotkey_flags;
 
 	    while (*arg && *arg <= ' ')
 		++arg;
     	    int key_code,cmd_len;
     	    if (*arg != '[')//显示当前已注册热键
     	    {
-		if (!(flags & BUILTIN_CMDLINE) || debug < 1)//必须在命令行下并且DEBUG 非 OFF 模式才会显示
-		    return 1;
-		printf_debug("hotkey_data_addr: 0x%X\n",hkd);
-		if (hkc->key_code)
-      printf_debug("Current registered hotkey:\n");
-		while(hkc->key_code)
-		{
-		    if (hkc->key_code != -1)
-		    {
-			    printf_debug("0x%X ",hkc->cmd);
-			    printf_debug("%s=>%s\n",get_keyname(hkc->key_code),hkc->cmd);
-		    }
-		    ++hkc;
-		}
 		return -1;
 	    }
     if (arg[1] == ']')  //[] 删除热键数据
