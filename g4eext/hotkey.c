@@ -404,13 +404,25 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 
 	if (!HOTKEY_FUNC) //首次加载热键，初始化
 	{
+#if 0
 		int buff_len = 0x4000;
+#else
+		int buff_len = *(unsigned int *)(&main + filemax - 0x24) - *(unsigned int *)(&main + filemax - 0x3c);
+		if (buff_len > 0x4000)//文件太大加载失败。限制hotkey程序不可以超过16KB。
+			return 0;
+#endif
     memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 		//HOTKEY程序驻留内存，直接复制自身代码到指定位置。
 		//本程序由command加载, 执行完毕就释放了，因此需要为热键单独分配内存。
 		//开启HOTKEY支持，即设置hotkey_func函数地址。
 		my_app_id = HOTKEY_MAGIC;
+#if 0
 		char *p = malloc(buff_len);
+#else
+    char *p = memalign (4096, buff_len);
+#endif
+    if (!p)
+      return 0;
 		HOTKEY_FUNC = (grub_size_t)p;
 		memmove((void*)HOTKEY_FUNC,&main,buff_len);
 

@@ -372,8 +372,8 @@ qwer:
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
   printf_debug("filename=%s\n",filename);
-  printf_debug("partition_type=%x, partition_start=%x, partition_len=%x\n",
-          p->partition_type,p->partition_start,p->partition_len);
+  printf_debug("partition_type=%x, partition_start=%x, partition_size=%x\n",
+          p->partition_type,p->partition_start,p->partition_size);
 
   memmove (args.path, filename, 256);  //复制文件路径
   convert_path (args.path, 1);              //转换路径

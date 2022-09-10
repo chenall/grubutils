@@ -24,11 +24,19 @@ typedef unsigned char      grub_uint8_t;
 typedef unsigned short     grub_uint16_t;
 typedef unsigned int       grub_uint32_t;
 typedef unsigned long long grub_uint64_t;
+typedef signed char        grub_int8_t;
+typedef short              grub_int16_t;
+typedef int                grub_int32_t;
+typedef long long          grub_int64_t;
 
-typedef signed char grub_int8_t;
-typedef short       grub_int16_t;
-typedef int         grub_int32_t;
-typedef long long   grub_int64_t;
+typedef unsigned int        grub_efi_uint32_t;
+typedef char                grub_efi_boolean_t;
+typedef unsigned char       grub_efi_uint8_t;
+typedef unsigned long long  grub_efi_uint64_t;
+
+typedef unsigned long long grub_disk_addr_t;
+typedef unsigned long long grub_off_t;
+
 
 #if defined(__i386__)
   typedef unsigned int        grub_size_t;
@@ -39,8 +47,9 @@ typedef long long   grub_int64_t;
 #endif
 
 typedef grub_size_t   grub_addr_t;
-typedef grub_uint64_t grub_disk_addr_t;
-typedef grub_uint64_t grub_off_t;
+typedef grub_size_t   grub_efi_lba_t;
+typedef grub_size_t   grub_efi_status_t;
+typedef grub_size_t   grub_efi_uintn_t;
 
 /* Error codes (descriptions are in common.c) */
 typedef enum
@@ -280,6 +289,7 @@ typedef enum
 #define builtin_cmd ((int (*)(char *cmd, char *arg, int flags))(SYSFUN(44)))
 #define get_datetime ((void (*)(struct grub_datetime *datetime))(SYSFUN(45)))
 #define find_command ((struct builtin *(*)(char *))(SYSFUN(46)))
+#define memalign ((void * (*)(grub_size_t, grub_size_t))(SYSFUN(48)))
 #define zalloc ((void *(*)(unsigned int))(SYSFUN(49)))
 #define malloc ((void *(*)(unsigned int))(SYSFUN(50)))
 #define free ((void (*)(void *ptr))(SYSFUN(51)))
@@ -518,11 +528,11 @@ typedef __builtin_va_list va_list;
 typedef __builtin_va_list __gnuc_va_list;
 #endif
 
-struct grub_disk_data  //efi磁盘数据	(软盘,硬盘,光盘)
+typedef void *efi_handle_t;
+
+struct grub_disk_data  //efi磁盘数据	(软盘,硬盘,光盘)    注：efidiskinfo.c使用
 {
   efi_handle_t device_handle;               //句柄
-//  efi_device_path_t *device_path;           //设备路径        类型,子类型,长度
-//  efi_device_path_t *last_device_path;      //最后设备路径    类型,子类型,长度
   efi_block_io_t *block_io;                 //块输入输出      修订,媒体,重置,读块,写块,清除块
   struct grub_disk_data *next;              //下一个
   unsigned char drive;                      //from驱动器
@@ -532,34 +542,34 @@ struct grub_disk_data  //efi磁盘数据	(软盘,硬盘,光盘)
   unsigned long long start_sector;          //起始扇区                  原生磁盘为0  from在to的起始扇区  每扇区字节=(1 << to_log2_sector)
   unsigned long long sector_count;          //扇区计数                  原生磁盘为0  from在to的扇区数    每扇区字节=(1 << to_log2_sector)
   unsigned long long total_sectors;         //总扇区数                  from驱动器的总扇区数  每扇区字节=(1 << from_log2_sector)
-  unsigned char disk_signature[16];         //磁盘签名        软盘/光盘或略  启动wim/vhd需要  mbr类型同分区签名,gpt类型则异样
-  unsigned short to_block_size;             //to块尺寸
-  unsigned char partmap_type;               //磁盘类型        1/2=MBR/GPT
+  unsigned char disk_signature[16];         //磁盘签名                  软盘/光盘或略  启动wim/vhd需要  mbr类型同分区签名,gpt类型则异样  原生磁盘为0
+  unsigned short to_block_size;             //to块尺寸                  原生磁盘为0
+  unsigned char partmap_type;               //硬盘分区类型    1/2=MBR/GPT
   unsigned char fragment;                   //碎片
   unsigned char read_only;                  //只读
   unsigned char disk_type;                  //磁盘类型        0/1/2=光盘/硬盘/软盘
-  unsigned char cd_boot_floppy;             //光盘引导软盘号             原生磁盘为0
-  unsigned char fill;                       //填充
-} __attribute__ ((packed));
+  unsigned short fill;                      //填充
+  void *vdisk;                              //虚拟磁盘指针
+}  __attribute__ ((packed));
 
-struct grub_part_data  //efi分区数据	(硬盘)
+struct grub_part_data  //efi分区数据	(硬盘)    注：loaderNT.c使用
 {
-//	efi_handle_t part_handle;               //句柄
-//	efi_device_path_t *part_path;           //分区路径
-//	efi_device_path_t *last_part_path;      //最后分区路径
 	struct grub_part_data *next;  				  //下一个
 	unsigned char	drive;									  //驱动器
-	unsigned char	partition_type;					  //MBR分区ID          EE是gpt分区类型
-	unsigned char	partition_activity_flag;  //MBR分区活动标志    80活动
-	unsigned char partition_entry;				  //分区入口           光盘: 启动目录确认入口   
-	unsigned int partition_ext_offset;		  //扩展分区偏移       光盘: 启动目录扇区地址
-	unsigned int partition;							    //当前分区
+	unsigned char	partition_type;					  //MBR分区ID         EE是gpt分区类型     光盘:
+	unsigned char	partition_activity_flag;  //MBR分区活动标志   80活动              光盘:
+	unsigned char partition_entry;				  //分区入口                              光盘: 启动目录确认入口   
+	unsigned int partition_ext_offset;		  //扩展分区偏移                          光盘: 启动目录扇区地址
+	unsigned int partition;							    //当前分区                              光盘: ffff
 	unsigned long long partition_offset;	  //分区偏移
-	unsigned long long partition_start;		  //分区起始扇区       光盘: 引导软盘在光盘的起始扇区(1扇区=2048字节)
-	unsigned long long partition_len;			  //分区扇区尺寸       光盘: 引导软盘的扇区数(1扇区=512字节)
-	unsigned char partition_signature[16];  //分区签名
-	unsigned char partition_number;         //入口号             硬盘：uefi分区号  光盘: uefi引导入口
-	unsigned char partition_boot;           //启动分区           /efi/boot/bootx64.efi文件所在分区
+	unsigned long long partition_start;		  //分区起始扇区                          光盘: 引导镜像是硬盘时，分区起始扇区
+	unsigned long long partition_size;			//分区扇区尺寸                          光盘: 引导镜像是硬盘时，分区扇区尺寸
+	unsigned char partition_signature[16];  //分区签名                              光盘: 
+	unsigned int boot_start;                //                                      光盘: 引导镜像在光盘的起始扇区(1扇区=2048字节)
+	unsigned int boot_size;                 //                                      光盘: 引导镜像的扇区数(1扇区=512字节)
+	efi_handle_t part_handle;               //句柄
+	unsigned char partition_number;         //入口号           未使用
+	unsigned char partition_boot;           //启动分区         /efi/boot/bootx64.efi文件所在分区
 } __attribute__ ((packed));
 
 #endif
