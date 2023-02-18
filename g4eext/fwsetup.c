@@ -71,6 +71,8 @@ static int main (char *arg,int key)
   }
   /* perform cold reset */
 //  rt->reset_system (EFI_RESET_WARM, EFI_SUCCESS, 0, NULL);
+  //无忧启动论坛 gues1688 反馈，热重启进入休眠，需按电源键后才能进入 fwsetup 固件设置。
+  //这个实体机主板很奇怪，按 ctrl+alt+del 也是进入休眠状态，必须再次按电源键才正常进入重启状态。
   rt->reset_system (EFI_RESET_COLD, EFI_SUCCESS, 0, NULL);
 
   return 1;

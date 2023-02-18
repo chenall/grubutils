@@ -99,7 +99,9 @@ typedef enum
 } grub_error_t;
 
 #define install_partition (*(unsigned long long *)0x8208)
-#define HOTKEY_FUNC (*(int*)0x8260)
+#define timer (*(int *)0x8238)   				//外部定时器
+#define grub_timeout (*(int *)0x8240)		//倒计时
+#define HOTKEY_FUNC (*(int*)0x8260)			//热键函数
 #define boot_drive (*(unsigned long long *)0x8280)
 #define pxe_yip (*(unsigned long *)0x8284)
 #define pxe_sip (*(unsigned long *)0x8288)
@@ -149,7 +151,7 @@ typedef enum
 #define graphics_CURSOR ((*(int **)0x8304)[28])
 #define menu_border ((*(struct border ***)0x8304)[29])
 #define current_color ((*(int **)0x8304)[42])
-//#define current_color_64bit ((*(int **)0x8304)[43])
+#define current_color_64bit (*(unsigned long long *)(*(int *)0x8304 + (43 << 2)))
 #define foreground ((*(int **)0x8304)[43])
 #define background ((*(int **)0x8304)[44])
 #define p_get_cmdline_str ((*(int **)0x8304)[45])
@@ -234,6 +236,7 @@ devread (unsigned long drive, unsigned long sector, unsigned long byte_offset, u
 #define open_device ((int (*)(void))((*(int **)0x8300)[35]))
 #define real_open_partition ((int (*)(int))((*(int **)0x8300)[36]))
 #define set_device ((char *(*)(char *))((*(int **)0x8300)[37]))
+#define run_line ((int (*)(char *heap, int flags))((*(int **)0x8300)[38]))
 #define parse_string ((int (*)(char *))((*(int **)0x8300)[41]))
 #define hexdump ((void (*)(unsigned long long,char*,int))((*(int **)0x8300)[42]))
 #define skip_to ((char *(*)(int after_equal, char *cmdline))((*(int **)0x8300)[43]))

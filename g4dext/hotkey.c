@@ -388,7 +388,7 @@ int main(char *arg,int flags,int flags1)
     printf("      \te.g.\thotkey -A [F3] \"reboot\" [Ctrl+d] \"commandline\"\n");
     printf("      \te.g.\ttitle [F4] Boot Win 8\n");
     printf("      \te.g.\ttitle Boot ^Win 10\n\n");
-    printf("      \tsetmenu --hotkey=[COLOR]\tset hotkey color.\n");
+    printf("      \tsetmenu --hotkey-color=[COLOR]\tset hotkey color.\n");
     printf("      \tCommand keys such as p, b, c and e will only work if SHIFT is pressed when hotkey -A\n");
         
     if (HOTKEY_FUNC && debug > 1)

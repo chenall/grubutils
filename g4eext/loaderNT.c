@@ -97,16 +97,19 @@ static int main(char *arg,int flags)
   char *suffix = &filename[strlen (filename) - 3]; //取尾缀
 
   //判断尾缀是否为WIM/VHD/WIN
-  if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'm')
+//  if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'm')
+  if (substring(suffix,"wim",1) == 0)
   {
     args.type = BOOT_WIM;
   }
-  else if ((suffix[0] | 0x20) == 'v' && (suffix[1] | 0x20) == 'h' && (suffix[2] | 0x20) == 'd')
+//  else if ((suffix[0] | 0x20) == 'v' && (suffix[1] | 0x20) == 'h' && (suffix[2] | 0x20) == 'd')
+  else if (substring(suffix,"vhd",1) == 0)
   {
     args.type = BOOT_VHD;
     sprintf (bcdname, "BCDVHD");
   }
-  else if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'n')
+//  else if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'n')
+  else if (substring(suffix,"win",1) == 0)
   {
     args.type = BOOT_WIN;
     sprintf (bcdname, "BCDWIN");
