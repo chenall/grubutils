@@ -100,6 +100,7 @@ typedef enum
 
 #define install_partition (*(unsigned long long *)0x8208)
 #define timer (*(int *)0x8238)   				//外部定时器
+#define cursor_state (*(unsigned int *)0x823C)	//鼠标状态
 #define grub_timeout (*(int *)0x8240)		//倒计时
 #define HOTKEY_FUNC (*(int*)0x8260)			//热键函数
 #define boot_drive (*(unsigned long long *)0x8280)
@@ -243,7 +244,8 @@ devread (unsigned long drive, unsigned long sector, unsigned long byte_offset, u
 #define builtin_cmd ((int (*)(char *cmd, char *arg, int flags))((*(int **)0x8300)[44]))
 #define get_datetime ((void (*)(unsigned long *date, unsigned long *time))((*(int **)0x8300)[45]))
 #define find_command ((struct builtin *(*)(char *))((*(int **)0x8300)[46]))
-#define get_mmap_entry ((int (*)(char *,int))((*(int **)0x8300)[49]))
+#define get_mmap_entry ((int (*)(char *,int))((*(int **)0x8300)[47]))
+#define zalloc ((void *(*)(int size))((*(int **)0x8300)[49]))
 #define malloc ((void *(*)(int size))((*(int **)0x8300)[50]))
 #define free ((void (*)(void *ptr))((*(int **)0x8300)[51]))
 #define realmode_run ((int (*)(long regs_ptr))((*(int **)0x8300)[53]))

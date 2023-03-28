@@ -242,9 +242,24 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
 			{
 				grub_error_t err_old = errnum;
 				if (hkc[i].cmd[0] == '@')		//静默方式运行(没有任何显示)
+				{
+					if (timer)
+					{
+						free ((void *)timer);
+						timer = 0;
+						grub_timeout = -1;
+						cls();
+					}
 			    builtin_cmd(NULL,hkc[i].cmd + 1,BUILTIN_CMDLINE);
+				}
 				else
 				{
+					if (timer)
+					{
+						free ((void *)timer);
+						timer = 0;
+						grub_timeout = -1;
+					}
 					putchar_hooked = 0;
 					setcursor (1); /* show cursor and disable splashimage */
 					if (current_term->SETCOLORSTATE)

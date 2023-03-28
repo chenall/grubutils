@@ -252,9 +252,24 @@ int main(char *arg,int flags,int flags1)
 		    {
 			grub_error_t err_old = errnum;
 			if (hkc[i].cmd[0] == '@')//静默方式运行(没有任何显示)
+			{
+				if (timer)
+				{
+					free ((void *)timer);
+					timer = 0;
+					grub_timeout = -1;
+					cls();
+				}
 			    builtin_cmd(NULL,hkc[i].cmd + 1,BUILTIN_CMDLINE);
+			}
 			else
 			{
+				if (timer)
+				{
+					free ((void *)timer);
+					timer = 0;
+					grub_timeout = -1;
+				}
 			    if ((*(int*)0x8278) >= 20131014)//高版本的GRUB4DOS支持
 			    {
 				putchar_hooked = 0;

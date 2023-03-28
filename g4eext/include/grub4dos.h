@@ -184,6 +184,7 @@ typedef enum
 #define part_length (*(unsigned long long *)IMG(0x82B0))
 #define fb_status (*(unsigned int *)IMG(0x82B8))
 #define is64bit (*(unsigned int *)IMG(0x82BC))
+#define cursor_state (*(unsigned int *)IMG(0x82C4))
 #define ram_drive (*(unsigned int *)IMG(0x82CC))
 #define rd_base (*(unsigned long long *)IMG(0x82D0))
 #define rd_size (*(unsigned long long *)IMG(0x82D8))

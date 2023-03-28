@@ -43,11 +43,13 @@ typedef struct
 	unsigned int width;
 	unsigned long long color;
 	unsigned int type;
+	unsigned int Inc_or_dec;
 	unsigned int pixel;
 	unsigned int delay;
 	unsigned int delay0;
 	unsigned int size;
 	unsigned int once;
+	unsigned int no_box;
 } __attribute__ ((packed)) user_data;	//用户数据
 
 static user_data data;	//数据保留区
@@ -63,9 +65,8 @@ static int main(char *arg, int flags);
 static int main(char *arg, int flags)
 {
 	user_data *gd;
-	int len;
+	unsigned int len;
 	unsigned long long col;
-	int test;
 
   get_G4E_image();
   if (! g4e_data)
@@ -79,13 +80,20 @@ static int main(char *arg, int flags)
 		gd = &data;	//数据挂钩
 		if (grub_timeout == -1)	//如果菜单关闭倒计时
 		{
-			col = current_color_64bit;
-			if (current_term->SETCOLORSTATE)
-				current_term->SETCOLORSTATE (COLOR_STATE_NORMAL);
-			current_color_64bit >>= 32;
-			rectangle(gd->left, gd->top, gd->length, 0, gd->width | 0x80000000);	//清除进度条
-			current_color_64bit = col;
-			timer = 0;		//定时器停止			
+			if (!(cursor_state & 1))
+			{
+				col = current_color_64bit;
+				if (current_term->SETCOLORSTATE)
+					current_term->SETCOLORSTATE (COLOR_STATE_NORMAL);
+				current_color_64bit >>= 32;
+				rectangle(gd->left, gd->top, gd->length, 0, gd->width | 0x80000000);	//清除进度条  
+				current_color_64bit = col;
+			}
+			if (timer)
+			{
+				free ((void *)timer);
+				timer = 0;		//定时器停止
+			}			
 			return 1;
 		}		
 		
@@ -98,37 +106,67 @@ static int main(char *arg, int flags)
 
 		if (!gd->once)
 		{
-			rectangle(gd->left, gd->top, gd->length, gd->width, 1); //画矩形
+			if(!gd->no_box && !gd->Inc_or_dec)
+				rectangle(gd->left, gd->top, gd->length, gd->width, 1); //画矩形
+			else if (gd->Inc_or_dec)
+				rectangle(gd->left, gd->top, gd->length, 0, gd->width);
 			gd->once = 1;
+		}
+
+		if (gd->Inc_or_dec)
+		{
+			if (current_term->SETCOLORSTATE)
+				current_term->SETCOLORSTATE (COLOR_STATE_NORMAL);
+			current_color_64bit >>= 32;
 		}
 
 		if (gd->type == 1)				//从左到右
 		{
-			rectangle(gd->size, gd->top, 0, gd->width, gd->pixel);	//画进度线
-			gd->size += gd->pixel;	//下一位置
-			if (gd->size >= gd->left + gd->length)	//如果进度线画满，结束
+			if (gd->size > gd->left + gd->length)	//如果进度线画满，结束
 				goto exit;
+			else if (gd->left + gd->length - gd->size >= gd->pixel)
+				len = gd->pixel;
+			else
+				len = gd->left + gd->length - gd->size;
+
+			rectangle(gd->size, gd->top, 0, gd->width, (gd->Inc_or_dec ? (len | 0x80000000) : len));	//画进度线
+			gd->size += gd->pixel;	//下一位置
 		}
 		else if (gd->type == 2)		//从右到左
 		{
-			rectangle(gd->size, gd->top, 0, gd->width, gd->pixel);
-			gd->size -= gd->pixel;
-			if (gd->size <= gd->left)
+			if (gd->size <= (gd->left - gd->pixel))
 				goto exit;
+			else if (gd->size >= gd->left)
+				len = gd->size;
+			else
+				len = gd->left;
+
+			rectangle(len, gd->top, 0, gd->width, (gd->Inc_or_dec ? (gd->pixel | 0x80000000) : gd->pixel));
+			gd->size -= gd->pixel;										//2ba-1
 		}
 		else if (gd->type == 3)		//从上到下
 		{
-			rectangle(gd->left, gd->size, gd->length, 0, gd->pixel);
-			gd->size += gd->pixel;
-			if (gd->size >= gd->top + gd->width)
+			if (gd->size > gd->top + gd->width)	
 				goto exit;
+			else if (gd->top + gd->width - gd->size >= gd->pixel)
+				len = gd->pixel;
+			else
+				len = gd->top + gd->width - gd->size;
+
+			rectangle(gd->left, gd->size, gd->length, 0, (gd->Inc_or_dec ? (len | 0x80000000) : len));
+			gd->size += gd->pixel;
 		}
 		else if (gd->type == 4) 	//从下到上
 		{
-			rectangle(gd->left, gd->size, gd->length, 0, gd->pixel);
-			gd->size -= gd->pixel;
-			if (gd->size <= gd->top)
+			if (gd->size <= gd->top - gd->pixel)
 				goto exit;
+			else if (gd->size >= gd->top)
+				len = gd->size;
+			else
+				len = gd->top;
+
+			rectangle(gd->left, len, gd->length, 0, (gd->Inc_or_dec ? (gd->pixel | 0x80000000) : gd->pixel));
+			gd->size -= gd->pixel;
 		}
 
 		current_color_64bit = col;
@@ -136,7 +174,6 @@ static int main(char *arg, int flags)
 
 //进度线画满，结束
 exit:
-		timer = 0;		//定时器停止
 		grub_timeout = 0;	//通知菜单中的延时到
 		current_color_64bit = col;
 		return 1;
@@ -145,10 +182,12 @@ exit:
   if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg)) //帮助信息
   {
     printf("ProgressBar for grub4efi by yaya,%s\n",__DATE__);
-    printf("Usage:\n\tProgressBar left top length widthl color type\n");
+    printf("Usage:\n\tProgressBar [--no-box] left top length widthl color type\n");
     printf("      \tcolor: use 32-bit color\n");
-    printf("      \ttype: 1. left to right; 2. right to left; 3. top to bottom; 4. bottom to top\n");
+    printf("      \ttype(0-3): 1. left to right; 2. right to left; 3. top to bottom; 4. bottom to top\n");
+    printf("      \ttype(4-7): 0. increase progressively; 1. decrease progressively\n");
     printf("      \tother units are pixels\n");
+    printf("      \t--no-box don't show box\n");
     return 1;
   }
 
@@ -162,11 +201,10 @@ exit:
 			return 0;
 
 		//本程序由command临时加载, 执行完毕就释放了，因此需要为程序单独分配驻留内存，。。
-    char *p = memalign (4096, buff_len);	//分配内存
-    if (!p)
+		timer = (int)(malloc (buff_len));			//分配内存，将驻留内存地址赋给定时器指针
+		if (!timer)
       return 0;
-		timer = (grub_size_t)p;								//将驻留内存地址赋给定时器指针
-		memmove((void*)(grub_size_t)timer,&main,buff_len);	//将本程序内容移动到驻留内存
+		memmove((void*)timer,&main,buff_len);	//将本程序内容移动到驻留内存
 
 		char* arg_bak = arg;	//避免损害参数
     gd = (user_data *)((grub_size_t(*)(char*,grub_size_t))timer)(0,0);//获取驻留内存用户数据位置
@@ -177,6 +215,16 @@ exit:
 	if (arg)  //处理参数		填充驻留内存用户数据
 	{
 		unsigned long long val;
+
+		for (;;)
+		{
+			if (memcmp (arg, "--no-box", 8) == 0)
+				gd->no_box = 1;
+			else
+				break;
+			arg=skip_to (0, arg);
+		}
+
 		if (safe_parse_maxint (&arg, &val))
 			gd->left = val;														//左上角x
 		arg = skip_to (0, arg);
@@ -193,7 +241,10 @@ exit:
 			gd->color = val;													//32位颜色
 		arg = skip_to (0, arg);
 		if (safe_parse_maxint (&arg, &val))
-			gd->type = val;														//类型  1/2/3/4=水平从左到右/水平从右到左/垂直从上到下/垂直从下到上
+		{
+			gd->type = val & 0xf;											//类型  1/2/3/4=水平从左到右/水平从右到左/垂直从上到下/垂直从下到上
+			gd->Inc_or_dec = (val & 0xf0) >> 4;				//增减  0/1=递增/递减
+		}
 		arg = skip_to (0, arg);
 
 		//计算进度条尺寸
@@ -207,21 +258,18 @@ exit:
 			if (gd->delay = (grub_timeout * 1000) / (len * gd->pixel))
 				break;
 		}
-		grub_timeout = 200;		//调大延时，避免干扰本程序
 		gd->delay0 = 0;		//延时计数归零
 
 		//确定进度线起始位置
 		if (gd->type == 1)				//从左到右
 			gd->size = gd->left;
 		else if (gd->type == 2)		//从右到左
-			gd->size = gd->left + gd->length - gd->pixel - 1;
+			gd->size = gd->left + gd->length - gd->pixel;
 		else if (gd->type == 3)		//从上到下
 			gd->size = gd->top;
 		else if (gd->type == 4) 	//从下到上
-			gd->size = gd->top + gd->width - gd->pixel - 1;
+			gd->size = gd->top + gd->width - gd->pixel;
 
-		gd->pixel <<= 1;	//程序执行有延时，这里进行弥补，但是。不精确。
-		run_line ("setmenu --timeout=0=100=0",1);	//屏蔽菜单倒计时显示
 		gd->once = 0;
 	}
 
