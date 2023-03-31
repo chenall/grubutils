@@ -234,7 +234,7 @@ static FRESULT fat_free_space(char *arg,unsigned long long *free_space)
     arg = fat_set_path(arg);
     res = f_getfree(arg,&fre_clust,&FS);
     if (res) return res;
-    *free_space = fre_clust * fs.csize << 9;
+    *free_space = (unsigned long long)fre_clust * fs.csize << 9;
     return res;
 }
 #endif
