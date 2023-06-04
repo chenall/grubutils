@@ -7,14 +7,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - name: 下载源码
       uses: actions/checkout@v1
     - name: 初始化
       run: |
-        sudo -E apt-get -y install gcc-4.8 gcc-4.8-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev gcc-mingw-w64-i686
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 1
+        sudo -E apt-get -y install gcc-11.3 gcc-11.3-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev gcc-mingw-w64-i686
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11.3
     - name: 编译
       run: |
         make -C umbr
