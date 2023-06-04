@@ -16,6 +16,7 @@ jobs:
         sudo apt-get -y install gcc-11 gcc-11-multilib nasm p7zip-full autoconf automake make patch binutils-dev liblzma-dev gcc-mingw-w64-i686
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11
         sudo apt-get update
+        sudo apt-get install --fix-missing
     - name: 编译
       run: |
         make -C umbr
