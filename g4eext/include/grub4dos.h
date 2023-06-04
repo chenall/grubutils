@@ -18,6 +18,11 @@
 #define L( x ) _L ( x )
 #define _L( x ) L ## x
 
+#if defined (__GNUC__) && (__GNUC__ > 8)
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
+
 typedef __WCHAR_TYPE__     wchar_t;
 
 typedef unsigned char      grub_uint8_t;

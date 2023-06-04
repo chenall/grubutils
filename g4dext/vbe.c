@@ -196,24 +196,25 @@ struct realmode_regs {
 	unsigned long cs; // code segment, as input
 	unsigned long eflags; // as input and output
 };
-unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment. */
+//unsigned long long GRUB = 0x534f443442555247LL;/* this is needed, see the following comment. */
 /* gcc treat the following as data only if a global initialization like the
  * above line occurs.
  */
 
 //asm(".long 0x534F4434");
-
 /* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
+//asm(ASM_BUILD_DATE);
+//asm(".long 0x03051805");
+//asm(".long 0xBCBAA7BA");
 
 /* thank goodness gcc will place the above 8 bytes at the end of the b.out
  * file. Do not insert any other asm lines here.
  */
 
 void demo1_Run();
+int GetDriverInfo ();
 
+#include "grubprog.h"
 /*******************************************************************/
 /* main() must be the first function. Don't insert functions here! */
 /*******************************************************************/
@@ -245,16 +246,16 @@ int main(char *arg,int flags)//( int argc, char* argv[] )
 	{
 		vesa.name = vbe.name;
 		vesa.flags = 0;
-		vesa.PUTCHAR = vbe_putchar;
+		vesa.PUTCHAR = (void *)vbe_putchar;
 		vesa.CHECKKEY = current_term->CHECKKEY;
 		vesa.GETKEY = current_term->GETKEY;
 		vesa.GETXY = vbe_getxy;
 		vesa.GOTOXY = vbe_gotoxy;
 		vesa.CLS = vbe_cls;
 		vesa.SETCOLORSTATE = vbe_setcolorstate;
-		vesa.SETCOLOR = vbe_setcolor;
+		vesa.SETCOLOR = (void *)vbe_setcolor;
 		vesa.SETCURSOR = vbe_setcursor;
-		vesa.STARTUP = vbe_init;
+		vesa.STARTUP = (void *)vbe_init;
 		vesa.SHUTDOWN = vbe_end;
 		font8x16 = (char*)get_font();
 	}
@@ -537,7 +538,7 @@ static unsigned long utf8_unicode(unsigned long offset,int n)
 		return 0;
 	}
 	c = *p_text;
-	/*检测该utf8字符串长度是否为n*/
+	/*\BC\EC\B2\E2\B8\C3utf8\D7址\FB\B4\AE\B3\A4\B6\C8\CA欠\F1为n*/
 	for(i=0;i<=6;++i)
 	{
 		if (!(c & mask[i]))
@@ -567,17 +568,17 @@ static unsigned long scan_utf8(unsigned long offset)
 	{
 		ch = *p_text & 0xFFC0;
 		/*
-			根据UTF8的规则
-			1.每个字符的最高位必须为1即0x80,
-			2.首个字符前面至少两个1,即像110xxxxx;
-			3.后面的字符必须是二进制10xxxxxx;
+			\B8\F9\BE\DDUTF8\B5墓\E6\D4\F2
+			1.每\B8\F6\D7址\FB\B5\C4\D7\EE\B8\DF位\B1\D8\D0\EB为1\BC\B40x80,
+			2.\CA赘\F6\D7址\FB前\C3\E6\D6\C1\C9\D9\C1\BD\B8\F61,\BC\B4\CF\F1110xxxxx;
+			3.\BA\F3\C3\E6\B5\C4\D7址\FB\B1\D8\D0\EB\CA嵌\FE\BD\F8\D6\C610xxxxxx;
 			
-			因为这里是从字符的后面往前面判断的
-			所以只要判断该字符的前两位为1即0xC0,那该UTF8的字符串就从这个地方开始.
+			\D2\F2为\D5\E2\C0\EF\CA谴\D3\D7址\FB\B5暮\F3\C3\E6\CD\F9前\C3\E6\C5卸系\C4
+			\CB\F9\D2\D4只要\C5卸细\C3\D7址\FB\B5\C4前\C1\BD位为1\BC\B40xC0,\C4歉\C3UTF8\B5\C4\D7址\FB\B4\AE\BE痛\D3\D5\E2\B8\F6\B5胤\BD\BF\AA始.
 		*/
 		if (ch == 0xC0)
 		{
-			/*用utf8_unicode函数进行转换,长度为i,如果长度不符合则返回0*/
+			/*\D3\C3utf8_unicode\BA\AF\CA\FD\BD\F8\D0\D0转\BB\BB,\B3\A4\B6\C8为i,\C8\E7\B9\FB\B3\A4\B6炔\BB\B7\FB\BA\CF\D4蚍祷\D80*/
 			return utf8_unicode(offset,i);
 		}
 		else if (ch != 0x80)

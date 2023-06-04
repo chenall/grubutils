@@ -1,23 +1,28 @@
-CC      := gcc
+ifeq ($(CC),cc)
+     CC := gcc
+endif
 OBJCOPY := objcopy
-SED     := sed
 RM      := rm
 MV      := mv
 MKDIR   := mkdir
 
-_TIME_Y = `date +%-Y`
-_TIME_m = `date +%-m`
-_TIME_d = `date +%-d`
-_TIME_H = `date +%-H`
-_TIME_M = `date +%-M`
-_TIME_S = `date +%-S`
 DATE = $(shell date -u +%Y-%m-%d)
-ASMDATE = $(shell date -u +".long "%Y%m%d)
 
-CFLAGS = -nostdlib -DASM_BUILD_DATE=\""$(ASMDATE)"\" -fno-reorder-functions -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables --entry main -Wl,-N -Wl,--build-id=none -m32 -mno-sse -Wl,-Ttext -Wl,0 -fPIE
+GCCVERSIONGTEQ5 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 5)
+GCCVERSIONGTEQ8 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 8)
+GCCVERSIONGTEQ10 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \< 10)
+
+CFLAGS := -Wl,--build-id=none -m32 -mno-sse -nostdlib \
+          -fno-zero-initialized-in-bss -fno-function-cse \
+          -fshort-wchar -fno-jump-tables -Wl,-N
+          
+ifeq "$(GCCVERSIONGTEQ5)" "1"
+	CFLAGS += -no-pie
+else
+	CFLAGS += -fPIE
+endif
 
 OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c)) fat/fat.o
-TMPFILES := $(patsubst %.c,%.tmp,$(wildcard *.c)) fat/fat.tmp
 MODULES := $(patsubst %.c,%.mod,$(wildcard *.c)) fat/fat.mod
 
 .PHONY: all
@@ -27,18 +32,32 @@ all: prepare $(MODULES) bin/fatmini
 %.o: %.c
 	$(CC) $(CFLAGS) -I../include/ $< -o $@
 
-%.tmp: %.o
+%.mod: %.o
 	$(OBJCOPY) -O binary $< $@
 
-%.mod: %.tmp
-	$(SED) -e '$$s/\x00*$$//' $< > $@
-#	$(MV) $@ bin/$$(basename -s .mod $@)
+#ifneq ($(A)$(B), 00),) # 'A || B' = (NOT)(NOT)'A || B' =(NOT)'(NOT)A && (NOT)B 
+ifeq ($(GCCVERSIONGTEQ8)$(GCCVERSIONGTEQ10), 11)  # $(GCCVERSIONGTEQ8) && $(GCCVERSIONGTEQ10)
+#	echo eq
+	dd bs=1 skip=28 if=$@ of=$@new
+	$(MV) $@new bin/$$(basename $@new .modnew)
+	$(RM) -f $@
+else
+#	echo neq
 	$(MV) $@ bin/$$(basename $@ .mod)
+endif
 
 bin/fatmini:
 	$(CC) $(CFLAGS) -I../include/ -DFAT_MINI fat/fat.c -o fat/fatmini.o
-	$(OBJCOPY) -O binary fat/fatmini.o fat/fatmini.tmp
-	$(SED) -e '$$s/\x00*$$//' fat/fatmini.tmp > bin/fatmini
+	$(OBJCOPY) -O binary fat/fatmini.o fat/fatmini.mod
+ifeq ($(GCCVERSIONGTEQ8)$(GCCVERSIONGTEQ10), 11)  # $(GCCVERSIONGTEQ8) && $(GCCVERSIONGTEQ10)
+#	echo eq
+	dd bs=1 skip=28 if=fat/fatmini.mod of=fat/fatmini.modnew
+	$(MV) fat/fatmini.modnew bin/fatmini
+	$(RM) -f fat/fatmini.mod
+else
+#	echo neq
+	$(MV) fat/fatmini.mod bin/fatmini
+endif	
 
 .PHONY: prepare
 prepare:
@@ -46,4 +65,9 @@ prepare:
 
 .PHONY: clean
 clean:
-	$(RM) -f *.o *.tmp *.mod fat/*.o fat/*.tmp bin/*
+ifeq ($(GCCVERSIONGTEQ8)$(GCCVERSIONGTEQ10), 1)
+	$(RM) -f *.o *.mod *.modnew fat/*.o fat/*.mod fat/*.modnew bin/* ../*.zip	
+else
+	$(RM) -f *.o *.mod fat/*.o fat/*.mod bin/* ../*.zip
+endif
+

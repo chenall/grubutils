@@ -379,7 +379,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
       HOTKEY_FUNC = 0;
       hotkey_flags = 0;
     }
-    return;
+    return 1;
   }
 
   if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg)) //帮助信息
@@ -414,7 +414,7 @@ grub_size_t main(char *arg,int flags,int flags1,int key)
       }  
     }
     
-    return;
+    return 1;
   }
 
 	if (!HOTKEY_FUNC) //首次加载热键，初始化

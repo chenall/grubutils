@@ -201,11 +201,10 @@ exit:
 			return 0;
 
 		//本程序由command临时加载, 执行完毕就释放了，因此需要为程序单独分配驻留内存，。。
-		timer = (int)(malloc (buff_len));			//分配内存，将驻留内存地址赋给定时器指针
+		timer = (grub_size_t)malloc (buff_len);			//分配内存，将驻留内存地址赋给定时器指针
 		if (!timer)
       return 0;
-		memmove((void*)timer,&main,buff_len);	//将本程序内容移动到驻留内存
-
+		memmove((void*)timer,(void*)main,buff_len);	//将本程序内容移动到驻留内存
 		char* arg_bak = arg;	//避免损害参数
     gd = (user_data *)((grub_size_t(*)(char*,grub_size_t))timer)(0,0);//获取驻留内存用户数据位置
 		arg = arg_bak;

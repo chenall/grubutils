@@ -390,7 +390,7 @@ int main(char *arg,int flags,int flags1)
       HOTKEY_FUNC = 0;
       hotkey_flags = 0;
     }
-    return;
+    return 1;
   }
   
 	if ((flags & BUILTIN_CMDLINE) && (!arg || !*arg))
@@ -425,12 +425,18 @@ int main(char *arg,int flags,int flags1)
       }  
     }
     
-    return;
+    return 1;
 	}
 
 	if (!HOTKEY_FUNC)
 	{
+#if 0
 		int buff_len = 0x4000;
+#else
+		int buff_len = *(unsigned int *)(&main + filemax - 0x24) - *(unsigned int *)(&main + filemax - 0x3c);
+		if (buff_len > 0x4000)//文件太大加载失败。限制hotkey程序不可以超过16KB。
+			return 0;
+#endif
 		memset ((void *)&hotkey_data, 0, sizeof(hkey_data_t));
 //		buff_len = (unsigned int)&__BSS_END - (unsigned int)&main;
 		#if CHECK_F11

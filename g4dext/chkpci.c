@@ -118,12 +118,11 @@ static struct pci_dev *PCI = NULL;
 static char *FILE_BUF = NULL;
 #endif
 static int out_fmt = 0;
+int chkpci_func (char *,int);
 
 /* this is needed, see the comment in grubprog.h */
 #include "grubprog.h"
 /* Do not insert any other asm lines here. */
-
-int chkpci_func (char *,int);
 
 int main (char *arg,int flags)
 {

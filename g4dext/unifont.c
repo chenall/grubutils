@@ -101,17 +101,18 @@ static int graphics_highlight_color = A_REVERSE;
 //static char *g_prf = 0x400000;
 
 
-int GRUB = 0x42555247;/* this is needed, see the following comment. */
+//int GRUB = 0x42555247;/* this is needed, see the following comment. */
 /* gcc treat the following as data only if a global initialization like the
  * above line occurs.
  */
-asm(".long 0x534F4434");
+//asm(".long 0x534F4434");
 
 /* a valid executable file for grub4dos must end with these 8 bytes */
-asm(ASM_BUILD_DATE);
-asm(".long 0x03051805");
-asm(".long 0xBCBAA7BA");
+//asm(ASM_BUILD_DATE);
+//asm(".long 0x03051805");
+//asm(".long 0xBCBAA7BA");
 
+#include "grubprog.h"
 /* thank goodness gcc will place the above 8 bytes at the end of the b.out
  * file. Do not insert any other asm lines here.
  */
@@ -145,7 +146,7 @@ main (char *arg,int flags)
 		close();
 		if (InitFont())
 		{
-			memmove((char *)BASE_FONT_ADDR + filemax ,&main,(int)&GRUB - (int)&main );
+//			memmove((char *)BASE_FONT_ADDR + filemax ,&main,(int)&GRUB - (int)&main );
 			ushFontReaded = 1;
 			FONT_WIDTH = 10;
 			return fontfile_func(arg,flags);

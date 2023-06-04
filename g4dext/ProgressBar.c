@@ -60,8 +60,8 @@ static user_data data;	//数据保留区
 /* Do not insert any other asm lines here. 请勿在此处插入任何其他asm行 */
 //不能包含子程序，不能包含全局变量，否则编译可以通过，但是不能正确执行。
 
-static int main(char *arg, int flags);
-static int main(char *arg, int flags)
+int main(char *arg, int flags);
+int main(char *arg, int flags)
 {
 	user_data *gd;
 	unsigned int len;

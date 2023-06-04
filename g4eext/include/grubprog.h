@@ -55,3 +55,4 @@ asm("_start:");
 /* thank goodness gcc will place the above 8 bytes at the end of the program		谢天谢地，gcc会把上面的8个字节放在程序文件的末尾。请勿在此处插入任何其他asm管路。 
  * file. Do not insert any other asm lines here.
  */
+

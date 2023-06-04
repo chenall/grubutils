@@ -42,14 +42,16 @@ asm(".ascii \"_end\"");
 asm(".long 0");
 asm(".long 0");
 asm(".long 0");
-asm(ASM_BUILD_DATE);	//asm(".long 0");
-
+//asm(ASM_BUILD_DATE);	//asm(".long 0");
+asm(".long 0");
 /* Don't insert any code/data here! */
 
 /* a valid executable file for grub4dos must end with these 8 bytes */
 asm(".long 0x03051805");
 asm(".long 0xBCBAA7BA");
 
+asm(".globl _start");
+asm("_start:");
 /* thank goodness gcc will place the above 8 bytes at the end of the program
  * file. Do not insert any other asm lines here.
  */
