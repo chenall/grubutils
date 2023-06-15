@@ -29,13 +29,10 @@ jobs:
      #  7z a grubutils.7z grubutils/fbinst/fbinst.exe grubutils/loadbin/*.bin grubutils/makemod/makemod.exe grubutils/makerom/makerom.exe grubutils/makerom/*.bin grubutils/weesetup/weesetup.exe
 
     - name: 上传
-      uses: marvinpinto/action-automatic-releases@latest
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        prerelease: false
-        title: "Development Build"
-        files: |
-            g4dext-*.zip
-            g4eext-*.zip
-       #    grubutils.7z
+      continue-on-error: true
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        gh release delete latest --cleanup-tag --yes
+        gh release create latest -t "Development Build" g4dext-*.zip g4eext-*.zip
+      env:
+        GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
