@@ -99,10 +99,9 @@ typedef enum
 } grub_error_t;
 
 #define install_partition (*(unsigned long long *)0x8208)
-#define timer (*(int *)0x8238)   				//外部定时器
-#define cursor_state (*(unsigned int *)0x823C)	//鼠标状态
-#define grub_timeout (*(int *)0x8240)		//倒计时
 #define HOTKEY_FUNC (*(int*)0x8260)			//热键函数
+#define timer (*(int *)0x8264)   				//外部定时器
+#define grub_timeout (*(int *)0x8268)		//倒计时
 #define boot_drive (*(unsigned long long *)0x8280)
 #define pxe_yip (*(unsigned long *)0x8284)
 #define pxe_sip (*(unsigned long *)0x8288)
@@ -121,7 +120,23 @@ typedef enum
 #define ram_drive (*(unsigned long *)0x82CC)
 #define rd_base (*(unsigned long long *)0x82D0)
 #define rd_size (*(unsigned long long *)0x82D8)
+#define free_mem_start (*(unsigned long *)0x82F0)
+#define free_mem_end (*(unsigned long *)0x82F4)
+#define saved_mmap_addr (*(unsigned long *)0x82F8)
+#define saved_mmap_length (*(unsigned long *)0x82FB)
 #define addr_system_functions (*(unsigned long *)0x8300)
+#define errnum (*(grub_error_t *)0x8314)
+#define current_drive (*(unsigned long *)0x8318)
+#define current_partition (*(unsigned long *)0x831C)
+#define filemax (*(unsigned long long *)0x8320)
+#define filepos (*(unsigned long long *)0x8328)
+#define debug (*(int *)0x8330)
+#define current_slice (*(unsigned long *)0x8334)
+#define buf_track	(*(unsigned long long *)0x8340)
+#define buf_drive	(*(int *)0x8348)
+#define cursor_state (*(unsigned int *)0x835C)	//鼠标状态
+
+
 #define next_partition_drive		((*(unsigned long **)0x8304)[0])
 #define next_partition_dest		((*(unsigned long **)0x8304)[1])
 #define next_partition_partition	((*(unsigned long ***)0x8304)[2])
@@ -143,7 +158,6 @@ typedef enum
 #define fsys_table ((*(struct fsys_entry ***)0x8304)[20])
 //#define fsys_type ((*(int **)0x8304)[21])
 //#define NUM_FSYS ((*(const int **)0x8304)[22])
-
 #define graphics_inited ((*(const int **)0x8304)[23])
 #define VARIABLE_GRAPHICS ((char *)(*(int ***)0x8304)[24])
 #define font8x16 ((*(char ***)0x8304)[25])
@@ -162,12 +176,7 @@ typedef enum
 #define cursorX (*(short *)(VARIABLE_GRAPHICS))
 #define cursorY (*(short *)(VARIABLE_GRAPHICS + 2))
 #define cursorBuf ((char *)(VARIABLE_GRAPHICS + 6))
-
-#define free_mem_start (*(unsigned long *)0x82F0)
-#define free_mem_end (*(unsigned long *)0x82F4)
-#define saved_mmap_addr (*(unsigned long *)0x82F8)
-#define saved_mmap_length (*(unsigned long *)0x82FB)
-
+ 
 #define DRIVE_MAP_SIZE	8
 #define PXE_DRIVE		0x21
 #define INITRD_DRIVE	0x22
@@ -177,17 +186,6 @@ typedef enum
 #define BIOSDISK_FLAG_BIFURCATE		0x4
 #define MB_ARD_MEMORY	1
 #define MB_INFO_MEM_MAP	0x00000040
-
-#define errnum (*(grub_error_t *)0x8314)
-#define current_drive (*(unsigned long *)0x8318)
-#define current_partition (*(unsigned long *)0x831C)
-#define filemax (*(unsigned long long *)0x8320)
-#define filepos (*(unsigned long long *)0x8328)
-#define debug (*(int *)0x8330)
-#define current_slice (*(unsigned long *)0x8334)
-#define buf_track	(*(unsigned long long *)0x8340)
-#define buf_drive	(*(int *)0x8348)
-
 #define GRUB_READ 0xedde0d90
 #define GRUB_WRITE 0x900ddeed
 

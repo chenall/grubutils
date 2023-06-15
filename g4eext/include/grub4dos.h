@@ -174,9 +174,8 @@ typedef enum
 
 
 #define install_partition (*(unsigned long long *)IMG(0x8208))
-#define timer (*(grub_size_t *)IMG(0x8238))         //外部定时器
-#define grub_timeout (*(int *)IMG(0x8240))          //倒计时
 #define HOTKEY_FUNC (*(grub_size_t*)IMG(0x8260))    //热键函数
+#define grub_timeout (*(int *)IMG(0x827c))          //倒计时
 #define boot_drive (*(unsigned long long *)IMG(0x8280))
 #define pxe_yip (*(unsigned int *)IMG(0x8284))
 #define pxe_sip (*(unsigned int *)IMG(0x8288))
@@ -208,6 +207,7 @@ typedef enum
 #define buf_track	(*(unsigned long long *)IMG(0x8340))
 #define buf_drive	(*(int *)IMG(0x8348))
 #define menu_mem (*(grub_size_t*)IMG(0x8388))     //菜单地址
+#define timer (*(grub_size_t *)IMG(0x8350))         //外部定时器
 
 #define next_partition_drive		(SYSVAR(0))
 #define next_partition_dest		(SYSVAR(1))

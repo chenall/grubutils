@@ -67,6 +67,12 @@ int main(char *arg, int flags)
 	unsigned int len;
 	unsigned long long col;
 
+  if (*(unsigned int *)(0x8278) < 20230613)
+  {
+    printf("Please use grub4dos version above 2023-06-13.\n");
+    return 0;
+  }
+
 	if (flags == timer)	//首次加载时，返回驻留内存用户数据地址
 		return (int)&data;
 

@@ -72,6 +72,12 @@ static int main(char *arg, int flags)
   if (! g4e_data)
     return 0;
 
+  if (*(unsigned int *)IMG(0x8278) < 20230613)
+  {
+    printf("Please use grub4efi version above 2023-06-13.\n");
+    return 0;
+  }
+
 	if (flags == 0)	//首次加载时，返回驻留内存用户数据地址
 		return (grub_size_t)&data;
 
