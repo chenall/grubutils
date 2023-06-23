@@ -231,41 +231,6 @@ void process_cmdline (char *arg)  //处理命令行参数
       strncpy (args.initrd_path, value, 256);
       convert_path (args.initrd_path, 1);
     }
-    else if (strcmp (key, "testmode") == 0) //测试模式 
-    {
-      if (! value || ! value[0])
-        sprintf (args.test_mode, "true");
-      else
-        sprintf (args.test_mode, "%s", value);
-    }
-    else if (strcmp (key, "hires") == 0)    //强制最高分辨率.默认开
-    {
-      if (! value || ! value[0])
-        sprintf (args.hires, "true");
-      else
-        sprintf (args.hires, "%s", value);
-    }
-    else if (strcmp (key, "detecthal") == 0)//探长 
-    {
-      if (! value || ! value[0])
-        sprintf (args.detecthal, "true");
-      else
-        sprintf (args.detecthal, "%s", value);
-    }
-    else if (strcmp (key, "novga") == 0)  //novga
-    {
-      if (! value || ! value[0])
-        sprintf (args.novga, "true");
-      else
-        sprintf (args.novga, "%s", value);
-    }
-    else if (strcmp (key, "novesa") == 0)  //没有vesa 
-    {
-      if (! value || ! value[0])
-        sprintf (args.novesa, "true");
-      else
-        sprintf (args.novesa, "%s", value);
-    }
     else if (strcmp (key, "bgrt") == 0)   //bgrt
       args.bgrt = 1;
 #if __x86_64__
@@ -341,6 +306,41 @@ void process_cmdline (char *arg)  //处理命令行参数
       else
         sprintf (args.minint, "%s", value);
     }
+    else if (strcmp (key, "testmode") == 0) //测试模式 
+    {
+      if (! value || ! value[0])
+        sprintf (args.test_mode, "true");
+      else
+        sprintf (args.test_mode, "%s", value);
+    }
+    else if (strcmp (key, "hires") == 0)    //强制最高分辨率，默认关。如果包含hires关键字而无值，则默认开。0/1=关/开
+    {
+      if (! value || ! value[0])
+        sprintf (args.hires, "true");
+      else
+        sprintf (args.hires, "%s", value);
+    }
+    else if (strcmp (key, "detecthal") == 0)//探长 
+    {
+      if (! value || ! value[0])
+        sprintf (args.detecthal, "true");
+      else
+        sprintf (args.detecthal, "%s", value);
+    }
+    else if (strcmp (key, "novga") == 0)  //novga
+    {
+      if (! value || ! value[0])
+        sprintf (args.novga, "true");
+      else
+        sprintf (args.novga, "%s", value);
+    }
+    else if (strcmp (key, "novesa") == 0)  //没有vesa 
+    {
+      if (! value || ! value[0])
+        sprintf (args.novesa, "true");
+      else
+        sprintf (args.novesa, "%s", value);
+    }
     else
       printf_errinfo ("Unrecognised argument \"%s%s%s\"\n", key,
            (value ? "=" : ""), (value ? value : ""));
@@ -358,23 +358,23 @@ static int modify_bcd (char *filename, char *bcdname, int flags) //修改bcd
           current_drive, current_partition, saved_drive, saved_partition);
   printf_debug("filename=%s\n",filename);
 
-  if (filename[0] == '(' && filename[1] == ')')
+  if (filename[0] == '(')
   {
+    char a = filename[1];
     filename = set_device (filename); //设置当前驱动器=输入驱动器号, 当前分区=输入分区号, 其余作为文件名 /efi/boot/bootx64.efi
-  }
-  else if (filename[0] == '(' && filename[1] != ')')
-  {
-    filename = set_device (filename);
-    p = get_partition_info (current_drive, current_partition);
-    d = get_device_by_drive (current_drive,0);
-    goto qwer;
+    printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
+          current_drive, current_partition, saved_drive, saved_partition);
+    printf_debug("filename=%s\n",filename);
+    if (a != ')')
+    {
+      p = get_partition_info (current_drive, current_partition);
+      d = get_device_by_drive (current_drive,0);
+      goto qwer;
+    }
   }
   p = get_partition_info (saved_drive, saved_partition);
   d = get_device_by_drive (saved_drive,0);
 qwer:
-  printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
-          current_drive, current_partition, saved_drive, saved_partition);
-  printf_debug("filename=%s\n",filename);
   printf_debug("partition_type=%x, partition_start=%x, partition_size=%x\n",
           p->partition_type,p->partition_start,p->partition_size);
 
@@ -934,21 +934,21 @@ bcd_patch_data (void)  //bcd修补程序数据
   bcd_parse_u64 (hive, BCDOPT_TIMEOUT, "0");
   /* testsigning  测试签名,按输入
    * default:   no 默认关*/
-//  if (nt_cmdline->test_mode[0])
-//    bcd_parse_bool (hive, BCDOPT_TESTMODE, nt_cmdline->test_mode);  //16000049
-//  else
+  if (nt_cmdline->test_mode[0])
+    bcd_parse_bool (hive, BCDOPT_TESTMODE, nt_cmdline->test_mode);  //16000049
+  else
     bcd_parse_bool (hive, BCDOPT_TESTMODE, "no");
   /* force highest resolution 强制最高分辨率,按输入
    * default:   no 默认关*/
-//  if (nt_cmdline->hires[0])
-//    bcd_parse_bool (hive, BCDOPT_HIGHEST, nt_cmdline->hires);
-//  else
+  if (nt_cmdline->hires[0])
+    bcd_parse_bool (hive, BCDOPT_HIGHEST, nt_cmdline->hires);
+  else
     bcd_parse_bool (hive, BCDOPT_HIGHEST, "no");
   /* detect hal and kernel  检测hal和内核,按输入
    * default:   yes 默认是*/
-//  if (nt_cmdline->detecthal[0])
-//    bcd_parse_bool (hive, BCDOPT_DETHAL, nt_cmdline->detecthal);
-//  else
+  if (nt_cmdline->detecthal[0])
+    bcd_parse_bool (hive, BCDOPT_DETHAL, nt_cmdline->detecthal);
+  else
     bcd_parse_bool (hive, BCDOPT_DETHAL, "yes");
   /* winpe mode   WinPE模式,按输入
    * default:
@@ -966,15 +966,15 @@ bcd_patch_data (void)  //bcd修补程序数据
   }
   /* disable vesa 禁用vesa,按输入
    * default:   no 默认关*/
-//  if (nt_cmdline->novesa[0])
-//    bcd_parse_bool (hive, BCDOPT_NOVESA, nt_cmdline->novesa);
-//  else
+  if (nt_cmdline->novesa[0])
+    bcd_parse_bool (hive, BCDOPT_NOVESA, nt_cmdline->novesa);
+  else
     bcd_parse_bool (hive, BCDOPT_NOVESA, "no");
   /* disable vga 禁用vga,按输入
    * default:   no 默认关*/
-//  if (nt_cmdline->novga[0])
-//    bcd_parse_bool (hive, BCDOPT_NOVGA, nt_cmdline->novga);
-//  else
+  if (nt_cmdline->novga[0])
+    bcd_parse_bool (hive, BCDOPT_NOVGA, nt_cmdline->novga);
+  else
     bcd_parse_bool (hive, BCDOPT_NOVGA, "no");
   /* nx policy  nx策略,按输入
    * default:   OptIn */

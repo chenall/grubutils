@@ -102,12 +102,12 @@ struct nt_args
   char path[256];
 //  char initrd_path[256];
 
-//  char test_mode[6];
-//  char hires[6];
-//  char detecthal[6];
+  char test_mode[6];
+  char hires[6];
+  char detecthal[6];
   char minint[6];
-//  char novesa[6];
-//  char novga[6];
+  char novesa[6];
+  char novga[6];
   char nx[10];
   char pae[8];
   char loadopt[128];
