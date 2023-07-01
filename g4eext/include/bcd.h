@@ -78,10 +78,10 @@
 
 struct bcd_disk_info
 {
-  uint8_t partid[16];
+  uint8_t partid[16];       //MBR: 分区起始字节;  GPT;  分区uuid
   uint32_t unknown;
   uint32_t partmap;
-  uint8_t diskid[16];
+  uint8_t diskid[16];       //MBR: 磁盘(分区)id;  GPT;  磁盘uuid
 } __attribute__ ((packed));
 
 enum bcd_type

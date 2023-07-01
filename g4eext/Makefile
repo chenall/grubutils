@@ -5,7 +5,12 @@ OBJCOPY := objcopy
 RM      := rm
 MV      := mv
 MKDIR   := mkdir
+LOSETUP := losetup
+MOUNT   := mount
+UMOUNT  := umount
+LZMA    := lzma
 
+TEMP = $(shell sudo losetup -f)
 DATE = $(shell date -u +%Y-%m-%d)
 
 GCCVERSIONGTEQ5 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 5)
@@ -26,6 +31,18 @@ MODULES := $(patsubst %.c,%.mod,$(wildcard *.c)) fat/fat.mod
 
 .PHONY: all
 all: prepare $(MODULES)
+
+	lzma -d -f ntboot/NTBOOT.lzma
+	sudo losetup -Pf ntboot/NTBOOT
+	sudo mkdir -p /mnt/ntboot
+	sudo mount $(TEMP)p1 /mnt/ntboot
+	sudo cp bin/setbcd /mnt/ntboot
+	rm -f bin/setbcd
+	sudo umount /mnt/ntboot
+	sudo losetup -d $(TEMP)
+	lzma -z -f --format=lzma ntboot/NTBOOT
+	cp -f ntboot/NTBOOT.lzma bin/NTBOOT
+	dd if=ntboot/data of=bin/NTBOOT bs=1 count=8 seek=5 conv=notrunc
 	zip -9 -j ../g4eext-$(DATE).zip bin/*
 
 %.o: %.c
@@ -55,5 +72,4 @@ ifeq ($(GCCVERSIONGTEQ8),1)
 else
 	$(RM) -f *.o *.mod fat/*.o fat/*.mod bin/* ../*.zip
 endif
-	
 	

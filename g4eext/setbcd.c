@@ -2,12 +2,12 @@
 
 /*
  * compile:
- * gcc -Wl,--build-id=none -m64 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE loaderNT.c -o loaderNT.o 2>&1|tee build.log
- * objcopy -O binary loaderNT.o loaderNT
+ * gcc -Wl,--build-id=none -m64 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE setbcd.c -o setbcd.o 2>&1|tee build.log
+ * objcopy -O binary setbcd.o setbcd
  *
  * analysis:
- * objdump -d loaderNT.o > loaderNT.s
- * readelf -a loaderNT.o > a.s
+ * objdump -d setbcd.o > setbcd.s
+ * readelf -a setbcd.o > a.s
  */
 //
 
@@ -394,10 +394,11 @@ qwer:
     memmove (args.info.partid, &p->partition_signature, 16); //分区uuid
     args.info.partmap = 0x00;
     memmove (args.info.diskid, &d->disk_signature, 16);      //磁盘uuid
-    printf_debug("GPT: partition_signature=%s\n",args.info.partid);
+    printf_debug("GPT: diskid_signature=%x, partition_signature=%x\n",
+            *(unsigned long long *)&d->disk_signature,*(unsigned long long *)&p->partition_signature);
   }
 
-  run_line ("find --set-root /loaderNT", flags);    //设置根到(hd-1)
+  run_line ("find --set-root /setbcd", flags);    //设置根到(hd-1)
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
   d = get_device_by_drive (current_drive,0);
@@ -475,7 +476,8 @@ qwer:
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
 #endif 
-
+  if (debug >= 3)
+    run_line("pause", 1);
   return 1;
 }
 

@@ -1,4 +1,43 @@
 ﻿更新说明：
+2023-07-01 (yaya)
+  增加 NTBOOT，用于在 x64 UEFI 启动 WIM/VHD
+  支持 MBR 分区表主分区、GPT 分区表任意分区
+  支持 FAT, NTFS, exFAT 文件系统 (VHD 不能位于 FAT 分区，老版本 Windows VHD 只能位于 NTFS 分区)
+  文件路径最好是不带空格的英文字母/数字。带空格的话传递参数时用符号"\ "代替空格。
+  命令行长度不得超过255。
+
+  使用方法：
+  1. 启动 Windows WIM/VHD
+  假设 WIM/VHD 位于 (hdx,y)/boot/imgs/winpe.vhd
+  title Boot Windows NT6+ PE
+  map --mem --no-hook /efi/grub/ext/ntboot (hd)
+  find --set-boot /boot/imgs/winpe.vhd
+  (hd-1,0)/setbcd  /boot/imgs/winpe.vhd winload=/Windows/System32/boot/winload.efi minint=1
+  boot
+
+  2. 启动 Windows 系统
+  假设系统文件夹位于 (hdx,y)
+  title Boot Windows
+  map --mem --no-hook /efi/grub/ext/ntboot (hd)
+  (hd-1,0)/setbcd  (hdx,y)/win
+  boot
+
+  命令行选项：
+  1、设置 Windows PE 加载选项。
+  winload=/Windows/System32/boot/winload.efi
+
+  2、指定 winload.exe/winload.efi 的路径。
+  sysroot=/Windows
+
+  3、指定 Windows 系统根目录。
+  secureboot=off
+
+  4、启动到 WinPE 模式。
+  minint=1
+
+  5、指定最大分辨率
+  hires=1
+
 2023-03-28 (yaya)
   增加外部定时器应用：进度条(ProgressBar)。
   使用方式：ProgressBar [--no-box] 左上角x 左上角y x尺寸 y尺寸 颜色 模式
