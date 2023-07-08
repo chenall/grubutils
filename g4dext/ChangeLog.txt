@@ -7,3 +7,154 @@
   模式(4-7)：0.递增  1.递减
 	x与y采用像素表示
 	--no-box: 在递增模式不显示边框
+
+============================================
+hotkey
+热键
+
+可选参数
+-nb 按键热后只选择对应菜单项，不启动. 
+-nc 除了方向键和回车键之外，如果按下的不是热键则丢弃。用于安全性比较高的场合，比如可以禁用’c’,’e’等GRUB4DOS默认的菜单热键。防止用户进入GRUB4DOS命令行或修改菜单。 
+-u 卸载热键
+-A 使用菜单首字母选择菜单
+注: 使用该参数会占用菜单的控制按键(像c,b,e,p),需要使用这些功能请按住Shift.比如Shift+C进入命令行
+
+hotkey [HOTKEY] "COMMAND"    注册新热键HOTKEY，执行COMMAND
+hotkey [HOTKEY]    禁用热键HOTKEY
+
+例子：
+hotkey -A [F3] "reboot"
+hotkey [Ctrl+d] "commandline"
+title [F4] Boot Win 8
+title Boot ^Win 10
+setmenu --hotkey-color=[COLOR]		#设置热键颜色
+
+============================================
+bios
+可以在GRUB4DOS下调用BIOS中断的外部命令
+
+参数
+写数据到指定端口
+bios outb/outw/outl PORT VALUE
+从指定端口读数据
+bios inb/inw/inl
+中断调用
+bios int=INT eax=EAX ebx=EBX […]
+
+可使用的所以参数在下面的列表中
+unsigned long edi; // as input and output
+unsigned long esi; // as input and output
+unsigned long ebp; // as input and output
+unsigned long esp; // stack pointer, as input
+unsigned long ebx; // as input and output
+unsigned long edx; // as input and output
+unsigned long ecx; // as input and output
+unsigned long eax;// as input and output
+unsigned long gs; // as input and output
+unsigned long fs; // as input and output
+unsigned long es; // as input and output
+unsigned long ds; // as input and output
+unsigned long ss; // stack segment, as input
+unsigned long eip; // instruction pointer, as input, 
+unsigned long cs; // code segment, as input
+unsigned long eflags; // as input and output
+
+===========================================
+chkpci
+在GRUB4DOS下直接检测PCI设备信息
+
+===========================================
+fat
+在FAT分区上复制创建文件
+
+FAT命令的目标对象必须是FAT12/16/32分区的目录和文件,目前只支持8.3格式
+
+FAT mkdir
+创建一个目录，只能一级一级建立目录，不可以同时建立多级目录；
+例子：FAT mkdir (hd1,0)/SRS
+FAT copy [/o]
+从源文件拷贝到目标文件，/o 参数用于覆盖操作。
+来源文件可以是任意GRUB4DOS可以访问的路径；
+目标文件必须是FAT分区;并且目标目录必须存在否则会提示错误；
+如果不指定目标文件名，自动使用源文件名；
+例子: fat copy (hd0,0)/file.ext (hd1,0)/file.ext
+
+FAT ren
+文件或目录更名/移动
+例子：
+1、修改当前ROOT分区下的abc.txt文件为abc.ini
+fat ren /abc.txt abc.ini
+
+2、移动文件，把abc.txt移到test目录下（test目录必须已经存在）
+fat ren /abc.txt /test/abc.txt
+
+FAT del
+删除文件或目录（只能删除空目录同DOS）
+例子：
+删除一个文件
+fat del /abc.txt
+删除一个目录同删除文件一样，但要求这个目录是空目录，你必须先删除这个目录下的文件才能删除这个目录
+注意：不要删除根目录
+
+FAT mkfile size=SIZE|* file
+创建新文件
+SIZE是文件大小，可以直接用*代替，大小等于上一个cat —length=0命令的结果。
+注:cat --length=0 file命令在GRUB4DOS中用于获取指定文件的大小。
+
+FAT mkfs [/A:unit-size]
+格式化磁盘
+
+FAT dir [/a*]
+列出路径下所有文件及目录。
+dir加了按属性显示的参数（同DOS的dir)
+d 目录
+s 系统属性
+r 只性属性
+h 隐藏属性
+- 表示否的前辍
+例子：
+dir /ad #只显示目录
+dir /as #只显示有带系统属性的文件或目录
+dir /ads #只显示带系统属性的目录
+dir /a-d #不显示目录。
+
+================================================
+wenv
+GRUB4DOS菜单脚本命令增强.
+
+两个内置变量:
+?_WENV 保存上一次wenv call运行的返回值
+?_GET 保存上一次wenv get variable变量的长度
+
+FOR 类拟于CMD的for
+比较强大的一个命令，可以分析字符串，文本文件。
+语法:
+FOR /L %variable IN (start,step,end) DO wenv-command
+该集表示以增量形式从开始到结束的一个数字序列。因此，(1,1,5)将产生序列
+1 2 3 4 5，(5,-1,1)将产生序列(5 4 3 2 1)
+
+FOR /F ["options"] %variable IN ( file ) DO wenv-command
+FOR /F ["options"] %variable IN ("string") DO wenv-command
+如果有 usebackq 选项:
+FOR /F ["options"] %variable IN (`string`) DO wenv-command
+options
+eol=c - 指一个行注释字符的结尾(就一个)
+delims=xxx - 指分隔符集。这个替换了空格和跳格键的
+默认分隔符集。
+tokens=x,y,m-n - 指每行的哪一个符号被传递到每个迭代
+的 for 本身。这会导致额外变量名称的分配。m-n
+格式为一个范围。通过 nth 符号指定 mth。
+usebackq - 反向引号
+
+几个例子 分析myfile.txt的每一行，使用";"作为注释符,使用","分隔字符串，显示每行的第二和第三个字符串
+FOR /F "eol=; tokens=2,3 delims=," %i in ( myfile.txt ) do echo %i %j
+
+显示从1-10的数字
+FOR /L %i in (1,1,10) do echo %i
+
+以下语句会显示 1 2 3 6
+FOR /f "tokens=1-3,6" %i in ("1 2 3 4 5 6 7 8 9 0") do echo %i %j %k %l
+
+可以参考CMD的for命令帮助说明.
+
+

@@ -27,6 +27,7 @@ MODULES := $(patsubst %.c,%.mod,$(wildcard *.c)) fat/fat.mod
 
 .PHONY: all
 all: prepare $(MODULES) bin/fatmini
+	cp -f ChangeLog.txt bin/
 	zip -9 -j ../g4dext-$(DATE).zip bin/*
 
 %.o: %.c

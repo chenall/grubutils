@@ -5,10 +5,6 @@ OBJCOPY := objcopy
 RM      := rm
 MV      := mv
 MKDIR   := mkdir
-LOSETUP := losetup
-MOUNT   := mount
-UMOUNT  := umount
-LZMA    := lzma
 
 TEMP = $(shell sudo losetup -f)
 DATE = $(shell date -u +%Y-%m-%d)
@@ -43,6 +39,7 @@ all: prepare $(MODULES)
 	lzma -z -f --format=lzma ntboot/NTBOOT
 	cp -f ntboot/NTBOOT.lzma bin/NTBOOT
 	dd if=ntboot/data of=bin/NTBOOT bs=1 count=8 seek=5 conv=notrunc
+	cp -f ChangeLog.txt bin/
 	zip -9 -j ../g4eext-$(DATE).zip bin/*
 
 %.o: %.c
