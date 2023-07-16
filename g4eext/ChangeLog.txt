@@ -1,26 +1,31 @@
 ﻿更新说明：
-2023-07-01 (yaya)
-  增加 NTBOOT，用于在 x64 UEFI 启动 WIM/VHD
-  支持 MBR 分区表主分区、GPT 分区表任意分区
-  支持 FAT, NTFS, exFAT 文件系统 (VHD 不能位于 FAT 分区，老版本 Windows VHD 只能位于 NTFS 分区)
-  文件路径最好是不带空格的英文字母/数字。带空格的话传递参数时用符号"\ "代替空格。
-  命令行长度不得超过255。
-
-  使用方法：
+2023-07-15 (yaya)
+  ntboot 支持外部命令尾续。
+  使用方法有所改变。
   1. 启动 Windows WIM/VHD
-  假设 WIM/VHD 位于 (hdx,y)/boot/imgs/winpe.vhd
-  title Boot Windows NT6+ PE
-  map --mem --no-hook /efi/grub/ext/ntboot (hd)
-  find --set-boot /boot/imgs/winpe.vhd
-  (hd-1,0)/setbcd  /boot/imgs/winpe.vhd winload=/Windows/System32/boot/winload.efi minint=1
+  title Boot Windows NT6+ vhd(PE)
+  find /boot/imgs/winpe.vhd | set bd=
+  /efi/grub/ext/ntboot  %bd%/boot/imgs/winpe.vhd winload=/Windows/System32/boot/winload.efi minint=1
+  boot
+
+  title Boot Windows NT6+ wim
+  find /efi/grub/ext/ntboot | set bd=
+  find --set-root /boot/imgs/winpe.wim
+  %bd%/efi/grub/ext/ntboot  /boot/imgs/winpe.wim
   boot
 
   2. 启动 Windows 系统
   假设系统文件夹位于 (hdx,y)
   title Boot Windows
-  map --mem --no-hook /efi/grub/ext/ntboot (hd)
-  (hd-1,0)/setbcd  (hdx,y)/win
+  /efi/grub/ext/ntboot  (hdx,y)/win
   boot
+
+2023-07-01 (yaya)
+  增加 ntboot，用于在 x64 UEFI 启动 WIM/VHD
+  支持 MBR 主分区及逻辑分区、GPT 任意分区
+  支持 FAT, NTFS, exFAT 文件系统 (VHD 不能位于 FAT 分区，老版本 Windows VHD 只能位于 NTFS 分区)
+  文件路径最好是不带空格的英文字母/数字。带空格的话传递参数时用符号"\ "代替空格。
+  命令行长度不得超过255。
 
   命令行选项：
   1、设置 Windows PE 加载选项。

@@ -2,12 +2,12 @@
 
 /*
  * compile:
- * gcc -Wl,--build-id=none -m64 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE setbcd.c -o setbcd.o 2>&1|tee build.log
- * objcopy -O binary setbcd.o setbcd
+ * gcc -Wl,--build-id=none -m64 -mno-sse -nostdlib -fno-zero-initialized-in-bss -fno-function-cse -fno-jump-tables -Wl,-N -fPIE ntboot.c -o ntboot.o 2>&1|tee build.log
+ * objcopy -O binary ntboot.o ntboot
  *
  * analysis:
- * objdump -d setbcd.o > setbcd.s
- * readelf -a setbcd.o > a.s
+ * objdump -d ntboot.o > ntboot.s
+ * readelf -a ntboot.o > a.s
  */
 //
 
@@ -82,14 +82,15 @@ static int main(char *arg,int flags)
   char bcdname[] = "BCDWIM";
   int i = 1, j;
   char *filename = arg;
+  char tmp[64] = {0};
 
   get_G4E_image();
   if (! g4e_data)
     return 0;
 
-  if (*(unsigned int *)IMG(0x8278) < 20220315)
+  if (*(unsigned int *)IMG(0x8278) < 20230714)
   {
-    printf("Please use grub4efi version above 2022-03-15.\n");
+    printf("Please use grub4efi version above 2023-07-14.\n");
     return 0;
   }
   memset((void *)&args, 0, sizeof(args));
@@ -97,18 +98,15 @@ static int main(char *arg,int flags)
   char *suffix = &filename[strlen (filename) - 3]; //取尾缀
 
   //判断尾缀是否为WIM/VHD/WIN
-//  if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'm')
   if (substring(suffix,"wim",1) == 0)
   {
     args.type = BOOT_WIM;
   }
-//  else if ((suffix[0] | 0x20) == 'v' && (suffix[1] | 0x20) == 'h' && (suffix[2] | 0x20) == 'd')
   else if (substring(suffix,"vhd",1) == 0)
   {
     args.type = BOOT_VHD;
     sprintf (bcdname, "BCDVHD");
   }
-//  else if ((suffix[0] | 0x20) == 'w' && (suffix[1] | 0x20) == 'i' && (suffix[2] | 0x20) == 'n')
   else if (substring(suffix,"win",1) == 0)
   {
     args.type = BOOT_WIN;
@@ -133,9 +131,11 @@ static int main(char *arg,int flags)
   filename1[j] = 0;  
   filename = filename1;
 
+  sprintf(tmp,"map (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件
+  run_line (tmp,flags);
   modify_bcd (filename, bcdname, flags); //修改bcd
   nt_cmdline = (struct nt_args *)&args;
-  bcd_patch_data ();
+  bcd_patch_data ();  //bcd修补程序数据
   run_line ("chainloader /bootx64.efi",flags);
   return 1;
 load_fail:
@@ -398,7 +398,8 @@ qwer:
             *(unsigned long long *)&d->disk_signature,*(unsigned long long *)&p->partition_signature);
   }
 
-  run_line ("find --set-root /setbcd", flags);    //设置根到(hd-1)
+//  run_line ("find --set-root /setbcd", flags);    //设置根到(hd-1)
+  run_line ("find --set-root /bcdvhd", flags);    //设置根到(hd-1)
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
   d = get_device_by_drive (current_drive,0);

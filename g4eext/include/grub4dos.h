@@ -240,6 +240,8 @@ typedef enum
 #define ADDR_RET_STR ((char *)(SYSVAR_2(31)))
 /* If the variable is a string, then:  ADDR_RET_STR = var;
    If the variable is a numeric value, then:  sprintf (ADDR_RET_STR,"0x%lx",var); */
+#define bat_md_start (SYSVAR(32))
+#define bat_md_count (SYSVAR(33))
 #define current_color (SYSVAR(42))
 #define current_color_64bit (SYSVAR(43))
 #define foreground (SYSVAR(43))
