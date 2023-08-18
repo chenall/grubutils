@@ -28,6 +28,7 @@ MODULES := $(patsubst %.c,%.mod,$(wildcard *.c)) fat/fat.mod
 all: prepare $(MODULES)
 
 	cat ntboot/ntboot >> bin/ntboot
+	cp -f ChangeLog.txt bin/
 	zip -9 -j ../g4eext-$(DATE).zip bin/*
 
 %.o: %.c

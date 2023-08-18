@@ -131,7 +131,7 @@ static int main(char *arg,int flags)
   filename1[j] = 0;  
   filename = filename1;
 
-  sprintf(tmp,"map (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件
+  sprintf(tmp,"map --mem --no-hook (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件
   run_line (tmp,flags);
   modify_bcd (filename, bcdname, flags); //修改bcd
   nt_cmdline = (struct nt_args *)&args;
