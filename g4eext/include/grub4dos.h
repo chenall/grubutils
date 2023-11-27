@@ -208,6 +208,7 @@ typedef enum
 #define buf_drive	(*(int *)IMG(0x8348))
 #define menu_mem (*(grub_size_t*)IMG(0x8388))     //菜单地址
 #define timer (*(grub_size_t *)IMG(0x8350))         //外部定时器
+#define efi_pxe_buf (*(grub_size_t *)IMG(0x8390))
 
 #define next_partition_drive		(SYSVAR(0))
 #define next_partition_dest		(SYSVAR(1))
@@ -284,9 +285,10 @@ typedef enum
 #define read ((unsigned long long (*)(unsigned long long, unsigned long long, unsigned int))(SYSFUN(27)))
 #define close ((void (*)(void))(SYSFUN(28)))
 #define get_device_by_drive ((struct grub_disk_data *(*)(unsigned int drive, unsigned int map))(SYSFUN(29)))
+#define tftp_write ((int (*)(const char *))(SYSFUN(30)))
 #define disk_read_hook ((void(**)(unsigned long long buf, unsigned long long len, unsigned int write))(SYSFUN(31)))
 #define devread ((int (*)(unsigned long long sector, unsigned long long byte_offset, unsigned long long byte_len, unsigned long long buf, unsigned int write))(SYSFUN(32)))
-#define devwrite ((int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
+#define devwrite ((unsigned int (*)devwrite (unsigned long long sector, unsigned long long sector_len, unsigned long long buf))(SYSFUN(33)))
 #define next_partition ((int (*)(void))(SYSFUN(34)))
 #define open_device ((int (*)(void))(SYSFUN(35)))
 #define real_open_partition ((int (*)(int))(SYSFUN(36)))

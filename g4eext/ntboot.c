@@ -28,9 +28,9 @@ struct nt_args *nt_cmdline;
 char temp[256];
 
 static void convert_path (char *str, int backslash);
-static void bcd_print_hex (const void *data, grub_size_t len);
+static void bcd_print_hex (const void *data, grub_size_t len, int flags);
 static void bcd_replace_hex (const void *search, grub_uint32_t search_len,
-                 const void *replace, grub_uint32_t replace_len, int count);
+                 const void *replace, grub_uint32_t replace_len, int count, int flags);
 static inline int grub_utf8_process (uint8_t c, uint32_t *code, int *count);
 static inline grub_size_t grub_utf8_to_utf16 (grub_uint16_t *dest, grub_size_t destsize,
                     const grub_uint8_t *src, grub_size_t srcsize, const grub_uint8_t **srcend);
@@ -80,8 +80,8 @@ static int main(char *arg,int flags);
 static int main(char *arg,int flags)
 {
   char bcdname[] = "BCDWIM";
-  int i = 1, j;
-  char *filename = arg;
+  int i = 1, j, test = 0;
+  char *filename, *buf = 0;
   char tmp[64] = {0};
 
   get_G4E_image();
@@ -93,8 +93,15 @@ static int main(char *arg,int flags)
     printf("Please use grub4efi version above 2023-07-14.\n");
     return 0;
   }
+  if (memcmp (arg, "--test", 6) == 0)		//测试  修改'/boot/bcd'
+  {
+    test = 1;
+    arg = skip_to(0x200,arg);
+  }
+
   memset((void *)&args, 0, sizeof(args));
-  arg = skip_to(0x200,filename);
+  filename = arg;
+  arg = skip_to(0x200,arg);
   char *suffix = &filename[strlen (filename) - 3]; //取尾缀
 
   //判断尾缀是否为WIM/VHD/WIN
@@ -131,12 +138,49 @@ static int main(char *arg,int flags)
   filename1[j] = 0;  
   filename = filename1;
 
+  if (!test)
+  {
   sprintf(tmp,"map --mem --no-hook (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件
   run_line (tmp,flags);
   modify_bcd (filename, bcdname, flags); //修改bcd
+  }
+  else
+  {
+    memmove (args.path, filename, 256); //复制文件路径
+    convert_path (args.path, 1);        //转换路径
+    open ("/boot/bcd");  //打开bcd文件
+    if (current_drive == 0x21)
+      args.bcd_data = efi_pxe_buf;
+    else
+    {
+      buf = zalloc (filemax+2);//3bc9a860
+      read ((unsigned long long)(grub_size_t)buf, filemax, GRUB_READ);
+      args.bcd_data = (unsigned long long)buf;
+    }
+    args.bcd_len = filemax;
+  }
+
   nt_cmdline = (struct nt_args *)&args;
   bcd_patch_data ();  //bcd修补程序数据
-  run_line ("chainloader /bootx64.efi",flags);
+
+  if (!test)
+    run_line ("chainloader /bootx64.efi",flags);
+  else
+  {
+    if (current_drive == 0x21)
+      tftp_write ("/boot/bcd");  //保存bcd
+    else
+    {
+      filepos = 0;
+      read ((unsigned long long)(grub_size_t)buf, filemax, GRUB_WRITE);
+    }
+    close ();  //关闭bcd文件
+    if (buf)
+      free (buf);
+  }
+  if (debug >= 3)
+    getkey();
+
   return 1;
 load_fail:
   return 0;
@@ -499,17 +543,22 @@ static void convert_path (char *str, int backslash)  //转换路径(路径,反�
 
 
 static void
-bcd_print_hex (const void *data, grub_size_t len)
+bcd_print_hex (const void *data, grub_size_t len, int flags)  //bcd打印十六进制数据
 {
   const grub_uint8_t *p = data;
   grub_size_t i;
   for (i = 0; i < len; i++)
-    printf_debug ("%02x ", p[i]);
+  {
+    if (p[i] < ' ' || !flags)
+      printf_debug ("%2x ", p[i]);
+    else
+      printf_debug ("%2c ", p[i]);
+  }
 }
 
 static void
 bcd_replace_hex (const void *search, grub_uint32_t search_len,
-                 const void *replace, grub_uint32_t replace_len, int count) //bcd替换十六进制数据 
+                 const void *replace, grub_uint32_t replace_len, int count, int flags) //bcd替换十六进制数据 
 {
   grub_uint8_t *p = (grub_uint8_t *)nt_cmdline->bcd_data;
   grub_uint32_t offset;
@@ -519,14 +568,13 @@ bcd_replace_hex (const void *search, grub_uint32_t search_len,
     if (memcmp (p + offset, search, search_len) == 0)
     {
       cnt++;
-      if (debug > 3)
-      {
         printf_debug ("0x%08x ", offset);
-        bcd_print_hex (search, search_len);
+        bcd_print_hex (search, search_len, 1);
         printf_debug ("\n---> ");
-        bcd_print_hex (replace, replace_len);
+        bcd_print_hex (replace, replace_len, flags);
         printf_debug ("\n");
-      }
+      if (debug >= 3)
+        getkey();
 
       memmove (p + offset, replace, replace_len);
       printf_debug ("...patched BCD at %x len %x\n", offset, replace_len);
@@ -552,8 +600,8 @@ bcd_replace_hex (const void *search, grub_uint32_t search_len,
 #define GRUB_UINT8_6_TRAILINGBITS 0x3f
 
 #define GRUB_MAX_UTF8_PER_UTF16 4
-/* You need at least one UTF-8 byte to have one UTF-16 word.
-   You need at least three UTF-8 bytes to have 2 UTF-16 words (surrogate pairs).
+/* You need at least one UTF-8 byte to have one UTF-16 word.                      至少需要一个UTF-8字节才能有一个UTF-16字。
+   You need at least three UTF-8 bytes to have 2 UTF-16 words (surrogate pairs).  至少需要三个UTF-8字节才能有两个UTF-16字（代理项对）。
  */
 #define GRUB_MAX_UTF16_PER_UTF8 1
 #define GRUB_MAX_UTF8_PER_CODEPOINT 4
@@ -564,8 +612,8 @@ bcd_replace_hex (const void *search, grub_uint32_t search_len,
 #define GRUB_UTF16_LOWER_SURROGATE(code) \
   (0xDC00 | (((code) - GRUB_UCS2_LIMIT) & 0x3ff))
   
-/* Process one character from UTF8 sequence. 
-   At beginning set *code = 0, *count = 0. Returns 0 on failure and
+/* Process one character from UTF8 sequence.                        处理UTF8序列中的一个字符。在开始设置*code=0，*count=0。
+   At beginning set *code = 0, *count = 0. Returns 0 on failure and 失败时返回0，成功时返回1。count保存尾随字节数。。
    1 on success. *count holds the number of trailing bytes.  */
 static inline int
 grub_utf8_process (uint8_t c, uint32_t *code, int *count)
@@ -575,7 +623,7 @@ grub_utf8_process (uint8_t c, uint32_t *code, int *count)
     if ((c & GRUB_UINT8_2_LEADINGBITS) != GRUB_UINT8_1_LEADINGBIT)
     {
       *count = 0;
-      /* invalid */
+      /* invalid 无效的*/
       return 0;
     }
     else
@@ -583,7 +631,7 @@ grub_utf8_process (uint8_t c, uint32_t *code, int *count)
       *code <<= 6;
       *code |= (c & GRUB_UINT8_6_TRAILINGBITS);
       (*count)--;
-      /* Overlong.  */
+      /* Overlong.  过长的*/
       if ((*count == 1 && *code <= 0x1f) || (*count == 2 && *code <= 0xf))
       {
         *code = 0;
@@ -603,7 +651,7 @@ grub_utf8_process (uint8_t c, uint32_t *code, int *count)
   {
     *count = 1;
     *code = c & GRUB_UINT8_5_TRAILINGBITS;
-    /* Overlong */
+    /* Overlong 过长的*/
     if (*code <= 1)
     {
       *count = 0;
@@ -653,7 +701,7 @@ grub_utf8_to_utf16 (grub_uint16_t *dest, grub_size_t destsize,
     {
       code = '?';
       count = 0;
-      /* Character c may be valid, don't eat it.  */
+      /* Character c may be valid, don't eat it.  字符c可能有效，不要回收它*/
       if (was_count)
         src--;
     }
@@ -691,7 +739,7 @@ bcd_patch_path (void)  //bcd修补路径
   grub_utf8_to_utf16 (nt_cmdline->path16, len,
                       (grub_uint8_t *)nt_cmdline->path, -1, NULL);  //转换为utf16
 
-  bcd_replace_hex (search, strlen (search), nt_cmdline->path16, len, 0);  //bcd替换十六进制数据
+  bcd_replace_hex (search, strlen (search), nt_cmdline->path16, len, 0, 1);  //bcd替换十六进制数据
 }
 
 static inline int islower (int c)
@@ -714,11 +762,11 @@ static inline int towupper (wint_t c)
 }
 
 /**
- * Compare two wide-character strings, case-insensitively
+ * Compare two wide-character strings, case-insensitively   比较两个宽字符串，不区分大小写
  *
- * @v str1    First string
- * @v str2    Second string
- * @ret diff    Difference
+ * @v str1    First string                                  第一个字符串
+ * @v str2    Second string                                 第二个字符串
+ * @ret diff    Difference                                  返回不同  相等为零
  */
 int wcscasecmp (const wchar_t *str1, const wchar_t *str2)
 {
@@ -734,37 +782,37 @@ int wcscasecmp (const wchar_t *str1, const wchar_t *str2)
 }
 
 static void
-bcd_patch_hive (reg_hive_t *hive, const wchar_t *keyname, void *val) //bcd补丁配置单元 
+bcd_patch_hive (reg_hive_t *hive, const wchar_t *keyname, void *val) //bcd修补蜂箱
 {
   HKEY root, objects, osloader, elements, key;
   grub_uint8_t *data = NULL;
   grub_uint32_t data_len = 0, type;
 
-  hive->find_root (hive, &root);  //根 
+  hive->find_root (hive, &root);  //查找根 
   //hive->find_key (hive, root, (const grub_uint16_t*)BCD_REG_ROOT, &objects);  //L"Objects"
-  hive->find_key (hive, root, BCD_REG_ROOT, &objects);  //L"Objects"  目标
-  if (wcscasecmp (keyname, BCDOPT_TIMEOUT) == 0)  //L"25000004"  超时
-    hive->find_key (hive, objects, GUID_BOOTMGR, &osloader);  //L"{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
-  else if (wcscasecmp (keyname, BCDOPT_DISPLAY) == 0) //L"26000020"  显示 
-    hive->find_key (hive, objects, GUID_BOOTMGR, &osloader);  //L"{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
-  else if (wcscasecmp (keyname, BCDOPT_IMGOFS) == 0)  //L"35000001"  ramdisk 选项
-    hive->find_key (hive, objects, GUID_RAMDISK, &osloader);  //L"{ae5534e0-a924-466c-b836-758539a3ee3a}"
+  hive->find_key (hive, root, BCD_REG_ROOT, &objects);  //查找键_注册表根  L"Objects"  
+  if (wcscasecmp (keyname, BCDOPT_TIMEOUT) == 0)  //比较键名称-超时?  L"25000004"
+    hive->find_key (hive, objects, GUID_BOOTMGR, &osloader);  //查找键_引导MGR  L"{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
+  else if (wcscasecmp (keyname, BCDOPT_DISPLAY) == 0) //比较键名称-显示?  L"26000020" 
+    hive->find_key (hive, objects, GUID_BOOTMGR, &osloader);  //查找键_引导MGR  L"{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
+  else if (wcscasecmp (keyname, BCDOPT_IMGOFS) == 0)  //比较键名称-IMGOFS?  L"35000001"  ramdisk 选项
+    hive->find_key (hive, objects, GUID_RAMDISK, &osloader);  //查找键_虚拟盘  L"{ae5534e0-a924-466c-b836-758539a3ee3a}"
   else
-    hive->find_key (hive, objects, GUID_OSENTRY, &osloader);  //L"{19260817-6666-8888-abcd-000000000000}"
-  hive->find_key (hive, osloader, BCD_REG_HKEY, &elements); //L"Elements"  元素
-  hive->find_key (hive, elements, keyname, &key);
-  hive->query_value_no_copy (hive, key, BCD_REG_HVAL, //L"Element"
-                             (void **)&data, &data_len, &type);
-  memmove (data, val, data_len);
-  printf_debug ("...patched %x len %x\n", data, data_len);
+    hive->find_key (hive, objects, GUID_OSENTRY, &osloader);  //查找键_其他项  L"{19260817-6666-8888-abcd-000000000000}"
+  hive->find_key (hive, osloader, BCD_REG_HKEY, &elements);   //查找键_注册表键  L"Elements"  元素
+  hive->find_key (hive, elements, keyname, &key);             //查找键_键名称
+  hive->query_value_no_copy (hive, key, BCD_REG_HVAL,
+                             (void **)&data, &data_len, &type);//查询指定键的位置、尺寸与类型  L"Element"
+  memmove (data, val, data_len);                              //修改键值
+  printf_debug ("...patched %x len %x\n", data, data_len);    //打印键位置、尺寸
 }
 
 /**
- * Compare two strings, case-insensitively
+ * Compare two strings, case-insensitively    比较两个字符串，不区分大小写
  *
- * @v str1    First string
- * @v str2    Second string
- * @ret diff    Difference
+ * @v str1    First string                    第一个字符串
+ * @v str2    Second string                   第二个字符串
+ * @ret diff    Difference                    返回不同
  */
 int strcasecmp (const char *str1, const char *str2)
 {
@@ -798,28 +846,28 @@ bcd_parse_bool (reg_hive_t *hive, const wchar_t *keyname, const char *s)  //bcd�
     val = 1;
   wchar_to_char (keyname);
   printf_debug ("...patching key %s value %x\n", tmp, val);
-  bcd_patch_hive (hive, keyname, &val);
+  bcd_patch_hive (hive, keyname, &val); //bcd修补蜂箱
 }
 
 /**
- * Convert a string to an unsigned integer
+ * Convert a string to an unsigned integer        将字符串转换为无符号整数
  *
- * @v nptr    String
- * @v endptr    End pointer to fill in (or NULL)
- * @v base    Numeric base
- * @ret val   Value
+ * @v nptr    String                              字符串
+ * @v endptr    End pointer to fill in (or NULL)  要填充的结束指针（或NULL）
+ * @v base    Numeric base                        数字基数
+ * @ret val   Value                               返回值
  */
 unsigned long strtoul (const char *nptr, char **endptr, int base)
 {
   unsigned long val = 0;
   int negate = 0;
   unsigned int digit;
-  /* Skip any leading whitespace */
+  /* Skip any leading whitespace 跳过任何前导空格*/
   while (isspace (*nptr))
   {
     nptr++;
   }
-  /* Parse sign, if present */
+  /* Parse sign, if present 分析符号（如果存在）*/
   if (*nptr == '+')
   {
     nptr++;
@@ -829,12 +877,12 @@ unsigned long strtoul (const char *nptr, char **endptr, int base)
     nptr++;
     negate = 1;
   }
-  /* Parse base */
+  /* Parse base 分析基础*/
   if (base == 0)
   {
-    /* Default to decimal */
+    /* Default to decimal 默认为十进制*/
     base = 10;
-    /* Check for octal or hexadecimal markers */
+    /* Check for octal or hexadecimal markers 检查八进制或十六进制标记*/
     if (*nptr == '0')
     {
       nptr++;
@@ -846,7 +894,7 @@ unsigned long strtoul (const char *nptr, char **endptr, int base)
       }
     }
   }
-  /* Parse digits */
+  /* Parse digits 分析数字*/
   for (; ; nptr++)
   {
     digit = *nptr;
@@ -868,21 +916,23 @@ unsigned long strtoul (const char *nptr, char **endptr, int base)
     }
     val = ((val * base) + digit);
   }
-  /* Record end marker, if applicable */
+  /* Record end marker, if applicable 记录结束标记（如适用）*/
   if (endptr)
   {
     *endptr = ((char *) nptr);
   }
-  /* Return value */
+  /* Return value 返回值*/
   return (negate ? -val : val);
 }
 
 static void
-bcd_parse_u64 (reg_hive_t *hive, const wchar_t *keyname, const char *s)
+bcd_parse_u64 (reg_hive_t *hive, const wchar_t *keyname, const char *s)  //bcd解析64位
 {
   grub_uint64_t val = 0;
   val = strtoul (s, NULL, 0);
-  bcd_patch_hive (hive, (const wchar_t *)keyname, &val);
+  wchar_to_char (keyname);
+  printf_debug ("...patching key %s value %x\n", tmp, val);
+  bcd_patch_hive (hive, (const wchar_t *)keyname, &val); //bcd修补蜂箱
 }
 
 static void
@@ -912,13 +962,13 @@ bcd_parse_str (reg_hive_t *hive, const wchar_t *keyname,
 }
 
 static void
-bcd_patch_data (void)  //bcd修补程序数据 
+bcd_patch_data (void)  //bcd修补数据 
 {
   static const wchar_t a[] = L".exe";
   static const wchar_t b[] = L".efi";
   reg_hive_t *hive = NULL;  //寄存器蜂巢
 
-  if (open_hive ((void *)nt_cmdline->bcd_data, nt_cmdline->bcd_len, &hive) || !hive)
+  if (open_hive ((void *)nt_cmdline->bcd_data, nt_cmdline->bcd_len, &hive) || !hive)  //打开蜂箱
     printf_errinfo ("BCD hive load error.\n"); //BCD配置单元加载错误
   else
     printf_debug ("BCD hive load OK.\n");    //BCD配置单元加载成功
@@ -927,14 +977,14 @@ bcd_patch_data (void)  //bcd修补程序数据
     bcd_patch_path ();  //bcd修补路径  填充wim/vhd文件的:  /路径/文件名
 
   bcd_replace_hex (BCD_DP_MAGIC, strlen (BCD_DP_MAGIC),     //"GNU GRUB2 NTBOOT"
-                   &nt_cmdline->info, sizeof (struct bcd_disk_info), 0); //bcd替换十六进制数据  填充填充wim/vhd/win文件的: 磁盘uuid, 分区起始
+                   &nt_cmdline->info, sizeof (struct bcd_disk_info), 0, 0); //bcd替换十六进制数据  填充填充wim/vhd/win文件的: 磁盘uuid, 分区起始
 
   /* display menu 显示菜单,开
    * default:   no 默认关*/
-  bcd_parse_bool (hive, BCDOPT_DISPLAY, "yes");  //bcd解析布尔
+  bcd_parse_bool (hive, BCDOPT_DISPLAY, "yes"); //bcd解析布尔
   /* timeout      超时,关
    * default:   1 默认1秒*/
-  bcd_parse_u64 (hive, BCDOPT_TIMEOUT, "0");
+  bcd_parse_u64 (hive, BCDOPT_TIMEOUT, "0");    //bcd解析64位
   /* testsigning  测试签名,按输入
    * default:   no 默认关*/
   if (nt_cmdline->test_mode[0])
@@ -992,7 +1042,8 @@ bcd_patch_data (void)  //bcd修补程序数据
       nx = NX_ALWAYSOFF;
     else if (strcasecmp (nt_cmdline->nx, "AlwaysOn") == 0)
       nx = NX_ALWAYSON;
-    bcd_patch_hive (hive, (const wchar_t *)BCDOPT_NX, &nx);
+    printf_debug ("...patching key %s value %s\n", "NT", nx);
+    bcd_patch_hive (hive, (const wchar_t *)BCDOPT_NX, &nx); //bcd修补蜂箱
   }
   /* pae        pae策略,按输入
    * default:   Default */
@@ -1005,14 +1056,15 @@ bcd_patch_data (void)  //bcd修补程序数据
       pae = PAE_ENABLE;
     else if (strcasecmp (nt_cmdline->pae, "Disable") == 0)//禁止
       pae = PAE_DISABLE;
-    bcd_patch_hive (hive, BCDOPT_PAE, &pae);
+    printf_debug ("...patching key %s value %s\n", "PAE", pae);
+    bcd_patch_hive (hive, BCDOPT_PAE, &pae); //bcd修补蜂箱
   }
   /* load options 装载选项
    * default:   DDISABLE_INTEGRITY_CHECKS 可删除完整性检查*/
   if (nt_cmdline->loadopt[0])
-    bcd_parse_str (hive, BCDOPT_CMDLINE, 0, nt_cmdline->loadopt); //L"12000030"
+    bcd_parse_str (hive, BCDOPT_CMDLINE, 0, nt_cmdline->loadopt); //bcd解析字符串  L"12000030"
   else
-    bcd_parse_str (hive, BCDOPT_CMDLINE, 0, BCD_DEFAULT_CMDLINE); //BCD默认命令行  DDISABLE_INTEGRITY_CHECKS 
+    bcd_parse_str (hive, BCDOPT_CMDLINE, 0, BCD_DEFAULT_CMDLINE); //bcd解析字符串  DDISABLE_INTEGRITY_CHECKS 
   /* winload.efi
    * default:
    *      OS  - \\Windows\\System32\\winload.efi
@@ -1027,13 +1079,13 @@ bcd_patch_data (void)  //bcd修补程序数据
     else
       bcd_parse_str (hive, BCDOPT_WINLOAD, 0, BCD_SHORT_WINLOAD); //vhd
   }
-  /* windows system root  按输入
+  /* windows system root  windows系统根  按输入
    * default:   \\Windows */
   if (nt_cmdline->sysroot[0])
     bcd_parse_str (hive, BCDOPT_SYSROOT, 0, nt_cmdline->sysroot);
   else
     bcd_parse_str (hive, BCDOPT_SYSROOT, 0, BCD_DEFAULT_SYSROOT); //"\\Windows"
-  /* windows resume windows恢复*/
+  /* windows resume   windows恢复*/
   if (nt_cmdline->type == BOOT_WIN)
   {
     bcd_parse_str (hive, BCDOPT_REPATH, 1, BCD_DEFAULT_WINRESUME);  //L"12000002"  "\\Windows\\System32\\winresume.efi"
@@ -1041,9 +1093,9 @@ bcd_patch_data (void)  //bcd修补程序数据
   }
   
   if (grub_efi_system_table)
-    bcd_replace_hex (a, 8, b, 8, 0);
+    bcd_replace_hex (a, 8, b, 8, 0, 0);
   else
-    bcd_replace_hex (b, 8, a, 8, 0);
+    bcd_replace_hex (b, 8, a, 8, 0, 0);
 }
 
 #define _CR(RECORD, TYPE, FIELD) \
@@ -1060,7 +1112,7 @@ enum reg_bool
 };
 
 static grub_size_t
-reg_wcslen (const grub_uint16_t *s) //注册会员
+reg_wcslen (const grub_uint16_t *s) //注册表宽字节尺寸
 {
   grub_size_t i = 0;
   while (s[i] != 0)
@@ -1068,7 +1120,7 @@ reg_wcslen (const grub_uint16_t *s) //注册会员
   return i;
 }
 
-static enum reg_bool check_header(hive_t *h) //注册布尔检查头 
+static enum reg_bool check_header(hive_t *h) //检查头 
 {
   HBASE_BLOCK* base_block = (HBASE_BLOCK*)h->data;
   uint32_t csum;
@@ -1163,8 +1215,8 @@ enum_keys (reg_hive_t *this, HKEY key, grub_uint32_t index,
   enum reg_bool overflow = false;
   unsigned int i;
 
-  // FIXME - make sure no buffer overruns (here and elsewhere)
-  // find parent key node
+  // FIXME - make sure no buffer overruns (here and elsewhere)  确保没有缓冲区溢出（这里和其他地方）
+  // find parent key node  查找父键节点
 
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + key);
 
@@ -1183,12 +1235,12 @@ enum_keys (reg_hive_t *this, HKEY key, grub_uint32_t index,
       + _offsetof(CM_KEY_NODE, Name[0]) + nk->NameLength)
     return REG_ERR_BAD_ARGUMENT;
 
-  // FIXME - volatile keys?
+  // FIXME - volatile keys?  易失性键？
 
   if (index >= nk->SubKeyCount || nk->SubKeyList == 0xffffffff)
     return REG_ERR_FILE_NOT_FOUND;
 
-  // go to key index
+  // go to key index  转到键索引
 
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->SubKeyList);
 
@@ -1211,7 +1263,7 @@ enum_keys (reg_hive_t *this, HKEY key, grub_uint32_t index,
   if (index >= lh->Count)
     return REG_ERR_BAD_ARGUMENT;
 
-  // find child key node
+  // find child key node  查找子键节点
 
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + lh->List[index].Cell);
 
@@ -1270,7 +1322,7 @@ find_child_key (hive_t* h, HKEY parent,
   CM_KEY_NODE* nk;
   CM_KEY_FAST_INDEX* lh;
 
-  // find parent key node
+  // find parent key node  查找父键节点
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + parent);
   if (size < 0)
     return REG_ERR_FILE_NOT_FOUND; //3
@@ -1285,7 +1337,7 @@ find_child_key (hive_t* h, HKEY parent,
     return REG_ERR_BAD_ARGUMENT;  //6
   if (nk->SubKeyCount == 0 || nk->SubKeyList == 0xffffffff)
     return REG_ERR_FILE_NOT_FOUND; //3
-  // go to key index
+  // go to key index  转到键索引
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->SubKeyList);
   if (size < 0)
     return REG_ERR_FILE_NOT_FOUND; //3
@@ -1300,7 +1352,7 @@ find_child_key (hive_t* h, HKEY parent,
   if ((grub_uint32_t)size < sizeof(grub_int32_t)
       + _offsetof(CM_KEY_FAST_INDEX, List[0]) + (lh->Count * sizeof(CM_INDEX)))
     return REG_ERR_BAD_ARGUMENT;  //6
-  // FIXME - check against hashes
+  // FIXME - check against hashes  检查哈希
   unsigned int i;
   for (i = 0; i < lh->Count; i++)
   {
@@ -1318,7 +1370,7 @@ find_child_key (hive_t* h, HKEY parent,
     if ((grub_uint32_t)size < sizeof(grub_int32_t)
         + _offsetof(CM_KEY_NODE, Name[0]) + nk2->NameLength)
       continue;
-    // FIXME - use string protocol here to do comparison properly?
+    // FIXME - use string protocol here to do comparison properly?  在这里使用字符串协议可以正确地进行比较吗？
     if (nk2->Flags & KEY_COMP_NAME)
     {
       unsigned int j;
@@ -1414,7 +1466,7 @@ enum_values (reg_hive_t *this, HKEY key,
   enum reg_bool overflow = false;
   unsigned int i;
 
-  // find key node
+  // find key node  查找键节点
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + key);
 
   if (size < 0)
@@ -1435,7 +1487,7 @@ enum_values (reg_hive_t *this, HKEY key,
   if (index >= nk->ValuesCount || nk->Values == 0xffffffff)
     return REG_ERR_FILE_NOT_FOUND;
 
-  // go to key index
+  // go to key index  转到键索引
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->Values);
 
   if (size < 0)
@@ -1446,7 +1498,7 @@ enum_values (reg_hive_t *this, HKEY key,
 
   list = (grub_uint32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->Values + sizeof(grub_int32_t));
 
-  // find value node
+  // find value node  查找值节点
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + list[index]);
 
   if (size < 0)
@@ -1499,7 +1551,7 @@ enum_values (reg_hive_t *this, HKEY key,
 static reg_err_t
 query_value_no_copy (reg_hive_t *this, HKEY key,
                      const grub_uint16_t* name, void** data,
-                     grub_uint32_t* data_len, grub_uint32_t* type)  //查询值无副本 
+                     grub_uint32_t* data_len, grub_uint32_t* type)  //查询指定键的位置、尺寸与类型
 {
   hive_t* h = _CR(this, hive_t, public);
   grub_int32_t size;
@@ -1507,7 +1559,7 @@ query_value_no_copy (reg_hive_t *this, HKEY key,
   grub_uint32_t* list;
   unsigned int namelen = reg_wcslen(name);
 
-  // find key node
+  // find key node  查找键节点
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + key);
   if (size < 0)
     return REG_ERR_FILE_NOT_FOUND;
@@ -1525,7 +1577,7 @@ query_value_no_copy (reg_hive_t *this, HKEY key,
   if (nk->ValuesCount == 0 || nk->Values == 0xffffffff)
     return REG_ERR_FILE_NOT_FOUND;
 
-  // go to key index
+  // go to key index  转到键索引
   size = -*(grub_int32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->Values);
   if (size < 0)
     return REG_ERR_FILE_NOT_FOUND;
@@ -1535,7 +1587,7 @@ query_value_no_copy (reg_hive_t *this, HKEY key,
 
   list = (grub_uint32_t*)((grub_uint8_t*)h->data + 0x1000 + nk->Values + sizeof(grub_int32_t));
 
-  // find value node
+  // find value node  查找值节点
   unsigned int i;
   for (i = 0; i < nk->ValuesCount; i++)
   {
@@ -1603,7 +1655,7 @@ query_value_no_copy (reg_hive_t *this, HKEY key,
     }
 
     if (vk->DataLength & CM_KEY_VALUE_SPECIAL_SIZE)
-    { // data stored as data offset
+    { // data stored as data offset  作为数据偏移量存储的数据
       grub_size_t datalen = vk->DataLength & ~CM_KEY_VALUE_SPECIAL_SIZE;
       grub_uint8_t *ptr = NULL;
 
@@ -1622,7 +1674,7 @@ query_value_no_copy (reg_hive_t *this, HKEY key,
       *data = (grub_uint8_t*)h->data + 0x1000 + vk->Data + sizeof(grub_int32_t);
     }
 
-    // FIXME - handle long "data block" values
+    // FIXME - handle long "data block" values  处理长“数据块”值
     *data_len = vk->DataLength & ~CM_KEY_VALUE_SPECIAL_SIZE;
     *type = vk->Type;
     return REG_ERR_NONE;
@@ -1663,7 +1715,7 @@ steal_data (reg_hive_t *this, void** data, grub_uint32_t* size)  //窃取数据
   h->size = 0;
 }
 
-static void clear_volatile (hive_t* h, HKEY key)  //清除易挥发的
+static void clear_volatile (hive_t* h, HKEY key)  //清除易失
 {
   grub_int32_t size;
   CM_KEY_NODE* nk;
@@ -1733,14 +1785,14 @@ static void clear_volatile (hive_t* h, HKEY key)  //清除易挥发的
 static hive_t static_hive;
 
 reg_err_t
-open_hive (void *file, grub_size_t len, reg_hive_t **hive)  //打开蜂巢
+open_hive (void *file, grub_size_t len, reg_hive_t **hive)  //打开蜂箱
 {
   hive_t *h = &static_hive;
   memset (h, 0, sizeof (hive_t));
   h->size = len;
   h->data = file;
 
-  if (!check_header(h))
+  if (!check_header(h)) //检查头
   {
     printf_debug ("Header check failed.\n");
     return REG_ERR_BAD_ARGUMENT;

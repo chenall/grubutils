@@ -1,4 +1,12 @@
 ﻿更新说明：
+2023-11-27 (yaya)
+  1. ntboot增加 --test 参数，用于产生一个启动 wim 的 bcd 实例。
+  可以在虚拟机网起环境执行。其他情况要在实机执行，因为一般虚拟机是只读的。
+  示例：ntboot /boot/imgs/pe64.wim
+
+  2. 增加函数 WIMname。用于 pxe 网起 wim 时，修改 bcd 文件内的 wim 文件名称。
+  示例：/efi/grub/ext/wimname /boot/imgs/pe64.wim
+
 2023-07-15 (yaya)
   ntboot 支持外部命令尾续。
   使用方法有所改变。
