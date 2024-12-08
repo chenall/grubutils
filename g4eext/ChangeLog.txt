@@ -1,4 +1,12 @@
 ﻿更新说明：
+2024-12-08 (a1ive)
+  增加适用于 G4E 的 iPXE wimboot，用于启动 wim 文件。
+  BIOS 版与 EFI 版的该文件完全相同，只保留一份即可。
+  示例：
+  title boot wim
+  kernel /EFI/grub/wimboot
+  initrd @bootx64.efi=/ms/bootmgfw.efi @bcd=/ms/bcd @boot.sdi=/ms/boot.sdi @wgl4_boot.ttf=/ms/wgl4_boot.ttf initrd @aaaa.bat=/ms/start.bat @boot.wim=/ms/winpe.wim
+
 2023-11-27 (yaya)
   1. ntboot增加 --test 参数，用于产生一个启动 wim 的 bcd 实例。
   可以在虚拟机网起环境执行。其他情况要在实机执行，因为一般虚拟机是只读的。

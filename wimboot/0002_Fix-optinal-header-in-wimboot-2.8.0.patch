@@ -1,0 +1,22 @@
+From 0890cc86c970659dcbefdf5c09c80d975f7184e2 Mon Sep 17 00:00:00 2001
+From: MexIT <mexit.dev@gmail.com>
+Date: Tue, 29 Oct 2024 01:24:47 +0000
+Subject: [PATCH] Fix optinal header in wimboot 2.8.0
+
+Thanks @Melanie.Malachite (#1)
+---
+ src/elf2efi.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/elf2efi.c b/src/elf2efi.c
+index 3109486..39c8d66 100644
+--- a/src/elf2efi.c
++++ b/src/elf2efi.c
+@@ -249,6 +249,7 @@ static struct pe_header efi_pe_header = {
+ 			.MinorLinkerVersion = 42,
+ 			.SectionAlignment = EFI_IMAGE_ALIGN,
+ 			.FileAlignment = EFI_FILE_ALIGN,
++			.MajorImageVersion = 1,
+ 			.SizeOfImage = EFI_IMAGE_ALIGN,
+ 			.SizeOfHeaders =
+ 				( sizeof ( efi_pe_header ) -

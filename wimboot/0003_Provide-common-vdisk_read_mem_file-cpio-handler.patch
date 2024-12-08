@@ -1,0 +1,103 @@
+From 395f15bb10d35e9f48381898ea3807032e5f8585 Mon Sep 17 00:00:00 2001
+From: a1ive <ligenlive@gmail.com>
+Date: Sat, 4 Nov 2023 10:51:24 +0800
+Subject: [PATCH] Provide common vdisk_read_mem_file cpio handler
+
+https://lists.ipxe.org/pipermail/ipxe-devel/2018-November/006339.html
+
+Signed-off-by: a1ive <ligenlive@gmail.com>
+---
+ src/main.c  | 20 +++-----------------
+ src/vdisk.c | 13 +++++++++++++
+ src/vdisk.h |  2 ++
+ 3 files changed, 18 insertions(+), 17 deletions(-)
+
+diff --git a/src/main.c b/src/main.c
+index 371c822..7274344 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -226,20 +226,6 @@ static int is_empty_pgh ( const void *pgh ) {
+ 	return ( ( dwords[0] | dwords[1] | dwords[2] | dwords[3] ) == 0 );
+ }
+ 
+-/**
+- * Read from file
+- *
+- * @v file		Virtual file
+- * @v data		Data buffer
+- * @v offset		Offset
+- * @v len		Length
+- */
+-static void read_file ( struct vdisk_file *file, void *data, size_t offset,
+-			size_t len ) {
+-
+-	memcpy ( data, ( file->opaque + offset ), len );
+-}
+-
+ /**
+  * Add embedded bootmgr.exe extracted from bootmgr
+  *
+@@ -337,7 +323,7 @@ static struct vdisk_file * add_bootmgr ( const void *data, size_t len ) {
+ 
+ 		/* Add decompressed image */
+ 		return vdisk_add_file ( "bootmgr.exe", initrd,
+-					decompressed_len, read_file );
++					decompressed_len, vdisk_read_mem_file );
+ 	}
+ 
+ 	DBG ( "...no embedded bootmgr.exe found\n" );
+@@ -356,7 +342,7 @@ static int add_file ( const char *name, void *data, size_t len ) {
+ 	struct vdisk_file *file;
+ 
+ 	/* Store file */
+-	file = vdisk_add_file ( name, data, len, read_file );
++	file = vdisk_add_file ( name, data, len, vdisk_read_mem_file );
+ 
+ 	/* Check for special-case files */
+ 	if ( strcasecmp ( name, "bootmgr.exe" ) == 0 ) {
+@@ -467,7 +453,7 @@ int main ( void ) {
+ 	/* Read bootmgr.exe into memory */
+ 	if ( ! bootmgr )
+ 		die ( "FATAL: no bootmgr.exe\n" );
+-	if ( bootmgr->read == read_file ) {
++	if ( bootmgr->read == vdisk_read_mem_file ) {
+ 		raw_pe = bootmgr->opaque;
+ 	} else {
+ 		padded_len = ( ( bootmgr->len + PAGE_SIZE - 1 ) &
+diff --git a/src/vdisk.c b/src/vdisk.c
+index 7885a5b..6685b14 100644
+--- a/src/vdisk.c
++++ b/src/vdisk.c
+@@ -613,6 +613,19 @@ void vdisk_read ( uint64_t lba, unsigned int count, void *data ) {
+ 	DBG2 ( "\n" );
+ }
+ 
++/**
++ * Read virtual file from memory
++ *
++ * @v file		Virtual file
++ * @v data		Data buffer
++ * @v offset		Offset
++ * @v len		Length
++ */
++void vdisk_read_mem_file ( struct vdisk_file *file, void *data,
++						   size_t offset, size_t len ) {
++	memcpy ( data, ( file->opaque + offset ), len );
++}
++
+ /**
+  * Add file to virtual disk
+  *
+diff --git a/src/vdisk.h b/src/vdisk.h
+index 7cae51c..b3b526b 100644
+--- a/src/vdisk.h
++++ b/src/vdisk.h
+@@ -611,6 +611,8 @@ struct vdisk_file {
+ extern struct vdisk_file vdisk_files[VDISK_MAX_FILES];
+ 
+ extern void vdisk_read ( uint64_t lba, unsigned int count, void *data );
++extern void vdisk_read_mem_file ( struct vdisk_file *file, void *data,
++								  size_t offset, size_t len );
+ extern struct vdisk_file *
+ vdisk_add_file ( const char *name, void *opaque, size_t len,
+ 		 void ( * read ) ( struct vdisk_file *file, void *data,
