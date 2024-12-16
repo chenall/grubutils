@@ -192,6 +192,7 @@ typedef enum
 #define ram_drive (*(unsigned int *)IMG(0x82CC))
 #define rd_base (*(unsigned long long *)IMG(0x82D0))
 #define rd_size (*(unsigned long long *)IMG(0x82D8))
+#define return_value (*(unsigned int *)IMG(0x82E0))
 #define addr_system_functions (*(unsigned int *)IMG(0x8300))	//地址
 #define free_mem_start (*(unsigned int *)IMG(0x82F0))
 #define free_mem_end (*(unsigned int *)IMG(0x82F4))
@@ -238,11 +239,15 @@ typedef enum
 #define fonty (SYSVAR(27))
 #define graphics_CURSOR ((void *)(SYSVAR_2(28)))
 #define menu_border ((struct border *)(SYSVAR_2(29)))
-#define ADDR_RET_STR ((char *)(SYSVAR_2(31)))
+#define ADDR_RET_STR ((char *)(SYSVAR_2(31)))   //WENV_ENVI
 /* If the variable is a string, then:  ADDR_RET_STR = var;
    If the variable is a numeric value, then:  sprintf (ADDR_RET_STR,"0x%lx",var); */
 #define bat_md_start (SYSVAR(32))
 #define bat_md_count (SYSVAR(33))
+#define ext_data_0 (SYSVAR(34))
+#define ext_data_1 (SYSVAR(35))
+#define map_start_sector ((unsigned long long *)(SYSVAR_2(36)))
+#define map_num_sectors ((unsigned long long *)(SYSVAR_2(37)))
 #define current_color (SYSVAR(42))
 #define current_color_64bit (SYSVAR(43))
 #define foreground (SYSVAR(43))

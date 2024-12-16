@@ -71,7 +71,6 @@ void process_cmdline (char *arg);
 static int modify_bcd (char *filename, char *bcdname, int flags);
 
 
-
 /* 这是必需的，请参阅grubprog.h中的注释 */
 #include <grubprog.h>
 /* 请勿在此处插入任何其他asm行 */
@@ -93,7 +92,7 @@ static int main(char *arg,int flags)
     printf("Please use grub4efi version above 2023-07-14.\n");
     return 0;
   }
-  if (memcmp (arg, "--test", 6) == 0)		//测试  修改'/boot/bcd'
+  if (memcmp (arg, "--test", 6) == 0)		//测试  网起时，修改主机(服务器)的'/boot/bcd'
   {
     test = 1;
     arg = skip_to(0x200,arg);
@@ -122,6 +121,8 @@ static int main(char *arg,int flags)
   else
     goto load_fail;  //是常规
 
+  if (current_drive == 0x21 && args.type != BOOT_WIM) //网起只允许wim格式
+    goto load_fail;  //无效
   process_cmdline (arg);  //处理命令行参数
   //处理字符串中的空格
   char *filename1 = temp;
@@ -140,9 +141,12 @@ static int main(char *arg,int flags)
 
   if (!test)
   {
-  sprintf(tmp,"map --mem --no-hook (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件
-  run_line (tmp,flags);
-  modify_bcd (filename, bcdname, flags); //修改bcd
+    int current_drive_back = current_drive;
+    int current_partition_back = current_partition;
+    sprintf(tmp,"map --mem --no-hook (md)0x%x+0x%x (hd)",bat_md_start,bat_md_count);  //加载尾续文件  map函数会改变当前驱动器号
+    run_line (tmp,flags);
+    current_drive = current_drive_back;
+    current_partition = current_partition_back;
   }
   else
   {
@@ -160,11 +164,121 @@ static int main(char *arg,int flags)
     args.bcd_len = filemax;
   }
 
+  if (current_drive == 0x21)
+  {
+    //创建内存盘
+    sprintf(tmp,"cat --length=0 (tftp)%s",filename+6);        //确定wim文件尺寸
+    run_line (tmp,flags); 
+
+    static efi_system_table_t *st;
+    static efi_boot_services_t *bs;
+    st = grub_efi_system_table;
+    bs = st->boot_services;
+    grub_efi_status_t status;
+    status = bs->allocate_pages (EFI_ALLOCATE_ANY_PAGES,   
+          EFI_RESERVED_MEMORY_TYPE,                        //保留内存类型        0
+          (grub_efi_uintn_t)((filesize + 0xc00000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
+    if (status != EFI_SUCCESS)	//如果失败
+    {
+      printf_errinfo ("out of map memory: %d\n",(int)status);
+      return 0;
+    }
+
+    rd_base = efi_pxe_buf;
+    rd_size = (filesize + 0xc00000)&(-4096ULL);
+    unsigned long long len = filesize;
+    memset ((void *)rd_base, 0, rd_size); 
+
+    //格式化内存盘
+    sprintf(tmp,"(hd-1,0)/fat mkfs /A:4096 mbr (rd)");
+    run_line (tmp,flags);   
+
+    //创建目录
+    run_line ("find --set-root /bcdvhd", flags);    //设置根
+    run_line ("/fat mkdir (rd)/boot",flags);//81,ffff
+    run_line ("/fat mkdir (rd)/efi",flags);
+    run_line ("/fat mkdir (rd)/efi/boot",flags);
+
+    run_line ("/fat mkdir (rd)/efi/microsoft",flags);   //fat函数不能创建长文件名
+    run_line ("/fat mkdir (rd)/efi/microsoft/boot",flags);
+    run_line ("/fat mkdir (rd)/efi/microsoft/boot/fonts",flags);
+    run_line ("/fat mkdir (rd)/efi/microsoft/boot/resources",flags);
+
+    //复制文件
+    run_line ("cat --length=0 /bcdnet",flags);        //获取文件尺寸
+    run_line ("/fat mkfile size=* (rd)/bcd",flags);   //创建文件信息,确定起始簇,分配簇.
+
+    run_line ("/fat copy /o /bcdnet (rd)/bcd",flags); //复制具体内容
+    args.bcd_data = rd_base + (ext_data_1 << 9);      //bcd在内存地址
+    args.bcd_len = filesize;                          //bcd尺寸
+    printf_debug ("args.bcd_data=%x, rd_base=%x, ext_data_1=%x, args.bcd_len=%x\n",args.bcd_data,rd_base,ext_data_1,args.bcd_len);
+
+    run_line ("cat --length=0 /bootx64.efi",flags);
+    run_line ("/fat mkfile size=* (rd)/bootx64.efi",flags);
+    run_line ("/fat copy /o /bootx64.efi (rd)/bootx64.efi",flags);
+
+    run_line ("cat --length=0 /boot/boot.sdi",flags);
+    run_line ("/fat mkfile size=* (rd)/boot/boot.sdi",flags);
+    run_line ("/fat copy /o /boot/boot.sdi (rd)/boot/boot.sdi",flags);
+
+    run_line ("/fat mkfile size=0 (rd)/efi/boot/bootx64.efi",flags);
+    run_line ("/fat copy /o /efi/boot/bootx64.efi (rd)/efi/boot/bootx64.efi",flags);
+
+    run_line ("cat --length=0 /efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
+    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
+    run_line ("/fat copy /o /efi/microsoft/boot/fonts/wgl4_boot.ttf (rd)/efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
+    
+    run_line ("cat --length=0 /efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
+    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
+    run_line ("/fat copy /o /efi/microsoft/boot/fonts/segoe_slboot.ttf (rd)/efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
+    
+    run_line ("cat --length=0 /efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
+    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
+    run_line ("/fat copy /o /efi/microsoft/boot/fonts/segmono_boot.ttf (rd)/efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
+    
+    run_line ("cat --length=0 /efi/microsoft/boot/resources/bootres.dll",flags);
+    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/resources/bootres.dll",flags);
+    run_line ("/fat copy /o /efi/microsoft/boot/resources/bootres.dll (rd)/efi/microsoft/boot/resources/bootres.dll",flags);
+
+    sprintf(tmp,"/fat mkfile size=0x%x (rd)/boot.wim",len);
+    run_line (tmp,flags);
+    bs->stall (10000); //延时10毫秒
+
+    //打开wim文件
+    int no_decompression_bak = no_decompression;
+    no_decompression = 1;
+    open (filename);        //确定wim文件尺寸
+    no_decompression = no_decompression_bak;
+    bs->stall (10000); //延时10毫秒
+    //读wim文件
+    unsigned long long buf1;
+    efi_pxe_buf = rd_base + (ext_data_1 << 9);
+    printf_debug ("efi_pxe_buf=%x, rd_base=%x, ext_data_1=x\n",efi_pxe_buf,rd_base,ext_data_1);
+    read (buf1, 0, GRUB_READ);
+    //延时50毫秒
+    bs->stall (50000); //延时50毫秒
+    //关闭wim文件
+    close ();
+    //正式创建虚拟硬盘
+    run_line ("map --no-alloc (rd)+1 (hd)",flags); 
+    //加载引导文件并启动
+    run_line ("chainloader (hd-1,0)/bootx64.efi",flags);
+    if (debug >= 3)
+      getkey();
+    run_line ("boot",flags);
+    return 0;
+  }
+  else
+    modify_bcd (filename, bcdname, flags); //修改bcd
+
   nt_cmdline = (struct nt_args *)&args;
   bcd_patch_data ();  //bcd修补程序数据
 
   if (!test)
-    run_line ("chainloader /bootx64.efi",flags);
+  {
+    run_line ("chainloader (hd-1,0)/bootx64.efi",flags);    
+    run_line ("boot",flags);
+  }
   else
   {
     if (current_drive == 0x21)
@@ -183,6 +297,7 @@ static int main(char *arg,int flags)
 
   return 1;
 load_fail:
+  printf_errinfo ("load fail\n");
   return 0;
 }
 
@@ -391,7 +506,7 @@ void process_cmdline (char *arg)  //处理命令行参数
   }
 }
 
-static int modify_bcd (char *filename, char *bcdname, int flags) //修改bcd
+static int modify_bcd (char *filename, char *bcdname, int flags) //修改bcd名称，设置bcd磁盘信息及bcd位置/尺寸
 {
   grub_uint64_t start_addr;
 	efi_status_t status;
@@ -442,7 +557,6 @@ qwer:
             *(unsigned long long *)&d->disk_signature,*(unsigned long long *)&p->partition_signature);
   }
 
-//  run_line ("find --set-root /setbcd", flags);    //设置根到(hd-1)
   run_line ("find --set-root /bcdvhd", flags);    //设置根到(hd-1)
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
@@ -455,14 +569,15 @@ qwer:
     return 0;
   }
 
-//重命名  bcdwim -> bcd
-#if 0 //通过外部命令fat
+//重命名  bcdxxx -> bcd
+#if 1 //通过外部命令fat
   sprintf (temp,"/fat ren /%s bcd",bcdname); //外部命令，已打包
   run_line((char *)temp,1);
-  query_block_entries = -1;
-  run_line("blocklist /bcd",1);   //获得bcd在ntboot的偏移以及尺寸
-  args.bcd_data = (start_sector + map_start_sector[0]) << 9;  //(ntboot在内存的扇区起始+bcd相对于ntboot的扇区偏移)转字节
-  args.bcd_len = map_num_sectors[0] << 9;   //(bcd扇区尺寸)转字节
+  sprintf(temp,"map --status=0x%x",current_drive);
+  run_line(temp,1);
+  run_line("blocklist /bcd",255);   //获得bcd在ntboot的偏移以及尺寸
+  args.bcd_data = (*(long long *)ADDR_RET_STR + (unsigned long long)map_start_sector) << 9;  //(ntboot在内存的扇区起始+bcd相对于ntboot的扇区偏移)转字节
+  args.bcd_len = filemax;   //(bcd扇区尺寸)转字节
 #else //通过FAT12/16文件结构
   grub_size_t i; 
   char *short_name, *long_name;
@@ -470,7 +585,7 @@ qwer:
   grub_uint64_t read_addr;
   printf_debug("start_sector=%x, partition_start=%x\n",
           d->start_sector,p->partition_start);
-  start_addr ^= start_addr;
+  start_addr ^= start_addr; //清零
   start_addr = (d->start_sector + p->partition_start) << 9; //BCD 所在卷在内存的基地址字节
   char *addr = (char *)start_addr;            //BCD 所在卷基地址字节指针
   read_addr = start_addr + ((*(grub_uint16_t *)(addr + 0xe) + ((*(grub_uint16_t *)(addr + 0x16)) << 1)) << 9); //FAT16主目录字节地址
@@ -514,13 +629,14 @@ qwer:
     long_name[13] = 0x6e;
   } 
 
-  args.bcd_data = read_addr + file_off;//10e54400
+  args.bcd_data = read_addr + file_off;
   args.bcd_len = file_len;
+#endif
+
   printf_debug("bcd_data=%x, bcd_len=%x\n",
           args.bcd_data, args.bcd_len);
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
-#endif 
   if (debug >= 3)
     run_line("pause", 1);
   return 1;
@@ -558,7 +674,7 @@ bcd_print_hex (const void *data, grub_size_t len, int flags)  //bcd打印十六�
 
 static void
 bcd_replace_hex (const void *search, grub_uint32_t search_len,
-                 const void *replace, grub_uint32_t replace_len, int count, int flags) //bcd替换十六进制数据 
+                 const void *replace, grub_uint32_t replace_len, int count, int flags) //bcd替换十六进制数据 (搜索目标,目标尺寸,替换内容,内容尺寸,计数,标记)
 {
   grub_uint8_t *p = (grub_uint8_t *)nt_cmdline->bcd_data;
   grub_uint32_t offset;
@@ -973,11 +1089,13 @@ bcd_patch_data (void)  //bcd修补数据
   else
     printf_debug ("BCD hive load OK.\n");    //BCD配置单元加载成功
 
-  if (nt_cmdline->type != BOOT_WIN)   //wim/vhd
-    bcd_patch_path ();  //bcd修补路径  填充wim/vhd文件的:  /路径/文件名
+  //bcd修补路径  填充wim/vhd文件的‘/路径/文件名’
+  if (nt_cmdline->type != BOOT_WIN)   //是wim或vhd，不是win
+    bcd_patch_path ();
 
-  bcd_replace_hex (BCD_DP_MAGIC, strlen (BCD_DP_MAGIC),     //"GNU GRUB2 NTBOOT"
-                   &nt_cmdline->info, sizeof (struct bcd_disk_info), 0, 0); //bcd替换十六进制数据  填充填充wim/vhd/win文件的: 磁盘uuid, 分区起始
+  //填充bcd磁盘信息  GPT: 分区uuid/磁盘uuid;   MBR: 分区起始字节/磁盘(分区)id
+    bcd_replace_hex (BCD_DP_MAGIC, strlen (BCD_DP_MAGIC),     //"GNU GRUB2 NTBOOT"
+                &nt_cmdline->info, sizeof (struct bcd_disk_info), 0, 0);
 
   /* display menu 显示菜单,开
    * default:   no 默认关*/
@@ -1316,7 +1434,7 @@ enum_keys (reg_hive_t *this, HKEY key, grub_uint32_t index,
 
 static reg_err_t
 find_child_key (hive_t* h, HKEY parent,
-                const grub_uint16_t* namebit, grub_size_t nblen, HKEY* key)  //找到子键 
+                const grub_uint16_t* namebit, grub_size_t nblen, HKEY* key)  //查找子键(bcd蜂箱,待找位置,待找内容,偏移,返回找到地址)
 {
   grub_int32_t size;
   CM_KEY_NODE* nk;
@@ -1397,7 +1515,7 @@ find_child_key (hive_t* h, HKEY parent,
       *key = 0x1000 + lh->List[i].Cell;
       return REG_ERR_NONE;
     }
-    else
+    else //如果标记不包含键组件名称
     {
       unsigned int j;
       if (nk2->NameLength / sizeof(grub_uint16_t) != nblen)
@@ -1425,7 +1543,7 @@ find_child_key (hive_t* h, HKEY parent,
 }
 
 static reg_err_t
-find_key (reg_hive_t* this, HKEY parent, const grub_uint16_t* path, HKEY* key)  //查找键
+find_key (reg_hive_t* this, HKEY parent, const grub_uint16_t* path, HKEY* key)  //查找键(bcd蜂箱,待找位置,待找内容,返回找到地址)
 {
   reg_err_t errno;
   hive_t* h = _CR(this, hive_t, public);
@@ -1435,21 +1553,21 @@ find_key (reg_hive_t* this, HKEY parent, const grub_uint16_t* path, HKEY* key)  
   do
   {
     nblen = 0;
-    while (path[nblen] != '\\' && path[nblen] != 0)
+    while (path[nblen] != '\\' && path[nblen] != 0) //移动到"\"或"0"
     {
-      nblen++;
+      nblen++;  //确定待找内容(path)字节
     }
-    errno = find_child_key (h, parent, path, nblen, &k);
+    errno = find_child_key (h, parent, path, nblen, &k);  //查找子键(bcd蜂箱,待找位置,待找内容,偏移,返回找到地址)
     if (errno)
       return errno;
     if (path[nblen] == 0 || (path[nblen] == '\\' && path[nblen + 1] == 0))
     {
-      *key = k;
+      *key = k;     //返回找到地址
       return errno;
     }
 
-    parent = k;
-    path = &path[nblen + 1];
+    parent = k;               //将返回找到地址作为待找位置,继续查
+    path = &path[nblen + 1];  //将下一待找内容,作为待找内容    不是继续查原先的内容?
   }
   while (1);
 }

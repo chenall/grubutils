@@ -1,16 +1,12 @@
 ﻿更新说明：
-2024-12-08 (a1ive)
-  增加适用于 G4E 的 iPXE wimboot，用于启动 wim 文件。
-  BIOS 版与 EFI 版的该文件完全相同，只保留一份即可。
-  示例：
-  title boot wim
-  kernel /EFI/grub/wimboot
-  initrd @bootx64.efi=/ms/bootmgfw.efi @bcd=/ms/bcd @boot.sdi=/ms/boot.sdi @wgl4_boot.ttf=/ms/wgl4_boot.ttf initrd @aaaa.bat=/ms/start.bat @boot.wim=/ms/winpe.wim
+2024-12-16 (yaya)
+  1. fat 支持长文件名(只限英文)。支持将镜象格式化为卷或者磁盘。
+  2. ntboot 支持网起 wim。例：/efi/grub/ext/ntboot (http)/boot/imgs/boot.wim
 
 2023-11-27 (yaya)
   1. ntboot增加 --test 参数，用于产生一个启动 wim 的 bcd 实例。
   可以在虚拟机网起环境执行。其他情况要在实机执行，因为一般虚拟机是只读的。
-  示例：ntboot /boot/imgs/pe64.wim
+  示例：ntboot --test /boot/imgs/pe64.wim
 
   2. 增加函数 WIMname。用于 pxe 网起 wim 时，修改 bcd 文件内的 wim 文件名称。
   示例：/efi/grub/ext/wimname /boot/imgs/pe64.wim
@@ -97,7 +93,7 @@ chkpci
 fat
 在FAT分区上复制创建文件
 
-FAT命令的目标对象必须是FAT12/16/32分区的目录和文件,目前只支持8.3格式
+FAT命令的目标对象必须是FAT12/16/32分区的目录和文件
 
 FAT mkdir
 创建一个目录，只能一级一级建立目录，不可以同时建立多级目录；
@@ -131,8 +127,11 @@ FAT mkfile size=SIZE|* file
 SIZE是文件大小，可以直接用*代替，大小等于上一个cat —length=0命令的结果。
 注:cat --length=0 file命令在GRUB4DOS中用于获取指定文件的大小。
 
-FAT mkfs [/A:unit-size]
+FAT mkfs [/A:unit-size] [mbr] 驱动器
 格式化磁盘
+/A:unit-size：指定一簇的字节尺寸，如  /A:4096。可以变相设置 FAT16/FAT32。 
+mbr：硬盘格式，即有主分区。
+驱动器：如(0)，(rd)，(hd)，(hd1,2)等等
 
 FAT dir [/a*]
 列出路径下所有文件及目录。

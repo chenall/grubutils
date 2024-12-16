@@ -47,8 +47,8 @@
  * to get this source code & binary: http://grub4dos-chenall.google.com
  * For more information.Please visit web-site at http://chenall.net
  * 2010-06-24
- * 2010-06-24 Ìí¼Ó»ñÈ¡µ±Ç°Ê±¼ä´úÂë.ĞŞÕıdirÏÔÊ¾Ê±¼äÈÕÆÚ´íÎó.copyÊ±°´Ô­ÎÄ¼ş¸´ÖÆ½ûÓÃGRUB4DOSµÄ×Ô¶¯½âÑ¹¹¦ÄÜ
- * 2010-07-27 ¼õĞ¡¶ÁÈ¡ÎÄ¼ş´ÎÊı£¬½â¾ö¸´ÖÆPXE·şÎñÆ÷ÉÏµÄÎÄ¼ş¿¨ËÀµÄÎÊÌâ¡£
+ * 2010-06-24 æ·»åŠ è·å–å½“å‰æ—¶é—´ä»£ç .ä¿®æ­£diræ˜¾ç¤ºæ—¶é—´æ—¥æœŸé”™è¯¯.copyæ—¶æŒ‰åŸæ–‡ä»¶å¤åˆ¶ç¦ç”¨GRUB4DOSçš„è‡ªåŠ¨è§£å‹åŠŸèƒ½
+ * 2010-07-27 å‡å°è¯»å–æ–‡ä»¶æ¬¡æ•°ï¼Œè§£å†³å¤åˆ¶PXEæœåŠ¡å™¨ä¸Šçš„æ–‡ä»¶å¡æ­»çš„é—®é¢˜ã€‚
   */
 #include "grub4dos.h"
 #include "fat.h"
@@ -104,7 +104,7 @@ main (char *arg,int flags)
 //	if (*(int *)0x8278 < 20101228)
   if (*(int *)IMG(0x8278) < 20101228)
 	{
-		return !printf("Err grub4dos version\n");
+		return !printf_errinfo("Err grub4dos version\n");
 	}
 
 	int ret=fat_func (arg , flags);
@@ -119,9 +119,9 @@ main (char *arg,int flags)
 
 /*
   Inidialize a Drive for FatFs Module.
-  ÒòÎªGRUB4DOSÍ¬Ò»Ê±¿ÌÖ»ÄÜ·ÃÎÊÒ»¸ö´ÅÅÌ£¬²Ù×÷ÁËÆäËü´ÅÅÌÒÔºó±ØĞëÖØĞÂ³õÊ¼»¯FAT´ÅÅÌ²ÅÄÜÊ¹FATÄ£¿éÕı³£Ê¹ÓÃ
-  ³ÌĞòµÄFatFs Module¶¼ÊÇÖ±½ÓÕë¶ÔÄ³¸öGRUB4DOS´ÅÅÌ·ÖÇøµÄ·ÃÎÊ£¬¶ø·ÇÕû¸ö´ÅÅÌ¡£
-  ×¢£º2010-06-03ÒÑ¾­ÕûºÏµ½diskioº¯ÊıÖĞÁË¡£
+  å› ä¸ºGRUB4DOSåŒä¸€æ—¶åˆ»åªèƒ½è®¿é—®ä¸€ä¸ªç£ç›˜ï¼Œæ“ä½œäº†å…¶å®ƒç£ç›˜ä»¥åå¿…é¡»é‡æ–°åˆå§‹åŒ–FATç£ç›˜æ‰èƒ½ä½¿FATæ¨¡å—æ­£å¸¸ä½¿ç”¨
+  ç¨‹åºçš„FatFs Moduleéƒ½æ˜¯ç›´æ¥é’ˆå¯¹æŸä¸ªGRUB4DOSç£ç›˜åˆ†åŒºçš„è®¿é—®ï¼Œè€Œéæ•´ä¸ªç£ç›˜ã€‚
+  æ³¨ï¼š2010-06-03å·²ç»æ•´åˆåˆ°diskioå‡½æ•°ä¸­äº†ã€‚
 */
 /*
 static int fat_init (void)
@@ -139,7 +139,7 @@ static int fat_init (void)
 }
 */
 /*
-	FatFs ModuleÄ£¿é²»ÄÜÖ±½ÓÊ¹ÓÃ´øÓĞÅÌ·ûĞÅÏ¢µÄGRUB4DOSÂ·¾¶£¬ËùÒÔ±ØĞë·ÖÀëÃüÁîĞĞÂ·¾¶²ÎÊıµÄ´ÅÅÌºÅºÍÄ¿Â¼Ìá¹©¸øFATÄ£¿éÊ¹ÓÃ¡£
+	FatFs Moduleæ¨¡å—ä¸èƒ½ç›´æ¥ä½¿ç”¨å¸¦æœ‰ç›˜ç¬¦ä¿¡æ¯çš„GRUB4DOSè·¯å¾„ï¼Œæ‰€ä»¥å¿…é¡»åˆ†ç¦»å‘½ä»¤è¡Œè·¯å¾„å‚æ•°çš„ç£ç›˜å·å’Œç›®å½•æä¾›ç»™FATæ¨¡å—ä½¿ç”¨ã€‚
 */
 static char* fat_set_path(char *arg);
 static char* fat_set_path(char *arg)
@@ -151,7 +151,7 @@ static char* fat_set_path(char *arg)
 	}
 	if (! set_device (arg)) return 0;
 //	if (! *(++P)) return 0;
-	/*ÉèÖÃÒª²Ù×÷µÄFAT·ÖÇø´ÅÅÌºÅºÍ·ÖÇøºÅ¹©FatFsÄ£¿éÊ¹ÓÃ*/
+	/*è®¾ç½®è¦æ“ä½œçš„FATåˆ†åŒºç£ç›˜å·å’Œåˆ†åŒºå·ä¾›FatFsæ¨¡å—ä½¿ç”¨*/
 	cur_drive = current_drive;
 	cur_partition = current_partition;
 	return strstr(arg,"/");
@@ -212,7 +212,7 @@ static FRESULT fat_dir (char *arg)
 	}
 	
 	if (arg = fat_set_path(arg))
-	{	/*È¥µôÄ¿Â¼ºóÃæµÄ"/"£¬Èç¹ûÓĞ¼Ó"/"£¬f_opendir»áÕÒ²»µ½ÎÄ¼ş*/
+	{	/*å»æ‰ç›®å½•åé¢çš„"/"ï¼Œå¦‚æœæœ‰åŠ "/"ï¼Œf_opendirä¼šæ‰¾ä¸åˆ°æ–‡ä»¶*/
 		char *P;
 		for (P = arg;P[1];P++);
 		if (*P == '/') *P = 0;
@@ -222,19 +222,19 @@ static FRESULT fat_dir (char *arg)
 	res = f_opendir(&dir,arg?arg:"");
 	if (res) return res;
 	
-	printf("FAT dir:[%s]\n",arg?arg:"/");
+	printf_debug("FAT dir:[%s]\n",arg?arg:"/");
 	
 	for (;;)
 	{
 		res = f_readdir (&dir, &fno);
 		if (res || fno.fname[0] == 0) break;
 		if (fno.fname[0] == '.' || (fno.fattrib & no_attr) || ((fno.fattrib & Attrib) != Attrib)) continue;
-		printf("%04d-%02d-%02d  %02d:%02d:%02d ",(fno.fdate >> 9) + 1980,fno.fdate >> 5 & 15,fno.fdate & 31,fno.ftime >> 11 & 31,fno.ftime >> 5 & 63,fno.ftime & 31);
+		printf_debug("%04d-%02d-%02d  %02d:%02d:%02d ",(fno.fdate >> 9) + 1980,fno.fdate >> 5 & 15,fno.fdate & 31,fno.ftime >> 11 & 31,fno.ftime >> 5 & 63,fno.ftime & 31);
 		if (fno.fattrib & AM_DIR)
-			printf(" <%s>\n",fno.fname);
+			printf_debug(" <%s>\n",fno.fname);
 		else
 		{
-			printf(" %12s  %u %s\n",fno.fname,fno.fsize>>20?fno.fsize>>10:fno.fsize,fno.fsize>>20?"KB":"");
+			printf_debug(" %12s  %u %s\n",fno.fname,fno.fsize>>20?fno.fsize>>10:fno.fsize,fno.fsize>>20?"KB":"");
 		}
 	}
 	return 0;
@@ -287,7 +287,7 @@ static FRESULT fat_mkfile(char *arg)
 	if (free_space < fil_size) 
 	{
 		#ifdef DEBUG
-			printf("Need more space: %lu KB,Current available drive space: %lu KB\n",fil_size - free_space >> 10, free_space >> 10);
+			printf_debug("Need more space: %lu KB,Current available drive space: %lu KB\n",fil_size - free_space >> 10, free_space >> 10);
 		#endif
 		return FR_DENIED;
 	}
@@ -310,8 +310,8 @@ static FRESULT fat_info (char *arg)
 	unsigned long long free_space;
     res = fat_free_space(arg,&free_space);
 	if (res) return res;
-    printf("FAT sub-type:\t%s\n",fs->fs_type == FS_FAT12?"FAT12":fs->fs_type == FS_FAT16?"FAT16":"FAT32");
-    printf("Sectors per cluster: %d\n"
+    printf_debug("FAT sub-type:\t%s\n",fs->fs_type == FS_FAT12?"FAT12":fs->fs_type == FS_FAT16?"FAT16":"FAT32");
+    printf_debug("Sectors per cluster: %d\n"
 			"Sectors per FAT: %d\n"
 			"Number of free clusters: %d\n"
 			"Total clusters: %d\n"
@@ -331,13 +331,13 @@ static FRESULT fat_copy (char *arg)
 	char new_to[256];
 	unsigned long long f_pos = 0;
 	unsigned long long fil_size;
-	UINT br, bw;/*br ¶ÁÈ¡×Ö½ÚÊı£»bw Ğ´Èë×Ö½ÚÊı¡£*/
+	UINT br, bw;/*br è¯»å–å­—èŠ‚æ•°ï¼›bw å†™å…¥å­—èŠ‚æ•°ã€‚*/
 	FRESULT res;
 	FIL file;
 
 	if (memcmp(arg, "/o", 2) == 0)
 	{
-		Mode |= FA_CREATE_ALWAYS;/*ÓĞ¼Ó²ÎÊı¡°/o¡±Ê¹ÓÃ¸²¸ÇµÄÄ£Ê½´´½¨ÎÄ¼ş*/
+		Mode |= FA_CREATE_ALWAYS;/*æœ‰åŠ å‚æ•°â€œ/oâ€ä½¿ç”¨è¦†ç›–çš„æ¨¡å¼åˆ›å»ºæ–‡ä»¶*/
 		arg = skip_to(0,arg);
 	}
 	else Mode |= FA_CREATE_NEW;
@@ -348,12 +348,12 @@ static FRESULT fat_copy (char *arg)
 
 	if (!to) 
 	{
-		/*Èç¹ûÖ»Ìá¹©ÁËÔ´ÎÄ¼şÃû£¬ÔòÄ¿±êÎÄ¼şÃûÊ¹ÓÃÀ´Ô´ÎÄ¼şÃû¸´ÖÆµ½µ±Ç°¸ùÄ¿Â¼ÏÂ*/
+		/*å¦‚æœåªæä¾›äº†æºæ–‡ä»¶åï¼Œåˆ™ç›®æ ‡æ–‡ä»¶åä½¿ç”¨æ¥æºæ–‡ä»¶åå¤åˆ¶åˆ°å½“å‰æ ¹ç›®å½•ä¸‹*/
 		char *P = to = from;
 		while(P = strstr(P,"/"))
 		   to = P++;
 	}
-		else if (to[strlen(to)-1] == '/') /*Èç¹ûÎ´Ìá¹©Ä¿±êÃû³Æ£¬ÔòÊ¹ÓÃÔ­Ãû¸´ÖÆ*/
+		else if (to[strlen(to)-1] == '/') /*å¦‚æœæœªæä¾›ç›®æ ‡åç§°ï¼Œåˆ™ä½¿ç”¨åŸåå¤åˆ¶*/
 	{
 		strcpy(new_to,to);
 		char *P = to = from;
@@ -362,7 +362,7 @@ static FRESULT fat_copy (char *arg)
 		to=new_to;
 	}
 
-	if (debug >1) printf("Copy file: %s ==> %s\n",from,to);
+	printf_debug("Copy file: %s ==> %s\n",from,to);
 
 	#if F_GETFREE
 	res = fat_free_space("",&f_pos);
@@ -376,7 +376,7 @@ static FRESULT fat_copy (char *arg)
 	if (f_pos < fil_size) 
 	{
 		#ifdef DEBUG
-			printf("Need more space: %lu KB,Current available drive space: %lu KB\n",fil_size - f_pos >> 10, f_pos >> 10);
+			printf_debug("Need more space: %lu KB,Current available drive space: %lu KB\n",fil_size - f_pos >> 10, f_pos >> 10);
 		#endif
 		return FR_DENIED;
 	}
@@ -404,11 +404,11 @@ static FRESULT fat_copy (char *arg)
 	while (br)
 	{
 		#ifdef DEBUG1
-		if (debug) printf("Read Bytes:%d\n",br);
+		printf_debug("Read Bytes:%d\n",br);
 		#endif
 		res = f_write(&file, f_buf, br, &bw);
 		#ifdef DEBUG1
-		if (debug) printf("Write Bytes:%d\n", bw);
+		printf_debug ("Write Bytes:%d\n", bw);
 		#endif
 		if (res || bw < br || f_pos >= fil_size) break;
 
@@ -549,6 +549,7 @@ static int fat_func (char *arg,int flags)
 	else if (memcmp (arg,"mkfs ",5) == 0)
 	{
 		unsigned long long unit = 0;
+		int mbr = 0;
 		arg = skip_to (0, arg);
 		if (memcmp (arg,"/A:", 3) == 0)
 		{
@@ -559,8 +560,14 @@ static int fat_func (char *arg,int flags)
 			}
 			arg = skip_to (0,arg);
 		}
+    if (memcmp (arg,"mbr", 3) == 0) //åˆ›å»ºmbrï¼Œç¡¬ç›˜æ ¼å¼    2024-11-25
+    {
+      arg += 3;
+      mbr = 1;
+      arg = skip_to (0,arg);
+    }
 		arg = fat_set_path(arg);
-		res = f_mkfs(0,1,(UINT)unit);
+		res = f_mkfs(0,(mbr?0:1),(UINT)unit);
 		if (res == 0 ) res = fat_info(arg);
 	}
 	#endif
@@ -590,16 +597,16 @@ static int fat_func (char *arg,int flags)
 	
 	if (res) {
 	#ifdef DEBUG
-		printf("FAT Error: %s\n",fat_err[res]);
+		printf_debug("FAT Error: %s\n",fat_err[res]);
 	#else
-		printf("FAT error: %d\n",res);
+		printf_debug("FAT error: %d\n",res);
 	#endif
 		errnum = 0xff;
 	}
 	return !res;
 };
 
-/*ÒÔÏÂÄÚÈİ±¾À´ÊÇÒª·ÅÔÚDISKIO.CµÄ£¬ÒòÎªÖ»ÓĞ¼¸¸öº¯Êı£¬ÎªÁË·½±ã¾ÍÖ±½ÓÕûºÏµ½ÕâÀïÀ´ÁË*/
+/*ä»¥ä¸‹å†…å®¹æœ¬æ¥æ˜¯è¦æ”¾åœ¨DISKIO.Cçš„ï¼Œå› ä¸ºåªæœ‰å‡ ä¸ªå‡½æ•°ï¼Œä¸ºäº†æ–¹ä¾¿å°±ç›´æ¥æ•´åˆåˆ°è¿™é‡Œæ¥äº†*/
 
 /*-----------------------------------------------------------------------*/
 /* Inidialize a Drive                                                    */
@@ -611,7 +618,7 @@ static DSTATUS disk_initialize (BYTE drv)
 	current_drive = cur_drive;
 	current_partition = cur_partition;
 	#ifdef DEBUG1
-		if (debug>1) printf("Current drive:%x,%x,%d,%d\n",current_drive,current_partition,fs->id,fs->fs_type);
+		printf_debug("Current drive:%x,%x,%d,%d\n",current_drive,current_partition,fs->id,fs->fs_type);
 	#endif
 	if (real_open_partition(0))
 	{
@@ -624,13 +631,13 @@ static DSTATUS disk_initialize (BYTE drv)
 /* Return Disk Status                                                    */
 /*-----------------------------------------------------------------------*/
 /*
-¡¡×¢£ºÎªÁË·ÀÖ¹ÔÚ½øĞĞÆäËü²Ù×÷Ê±ÇĞ»»ÁËGRUB4DOSµÄµ±Ç°´ÅÅÌºÍ·ÖÇøºÅµ¼ÖÂFATÄ£¿éµÄ²Ù×÷Ê§°Ü¡£
-¡¡ÔÚÕâ¸öº¯ÊıÀïÃæÖØĞÂÖ¸¶¨FAT·ÖÇø£¨Ò²¾ÍÊÇÉÏÃæµÄ³õÊ¼»¯²Ù×÷£©£¬ÒÔ±£Ö¤FATÄ£¿éÕı³£Ê¹ÓÃ¡£
+ã€€æ³¨ï¼šä¸ºäº†é˜²æ­¢åœ¨è¿›è¡Œå…¶å®ƒæ“ä½œæ—¶åˆ‡æ¢äº†GRUB4DOSçš„å½“å‰ç£ç›˜å’Œåˆ†åŒºå·å¯¼è‡´FATæ¨¡å—çš„æ“ä½œå¤±è´¥ã€‚
+ã€€åœ¨è¿™ä¸ªå‡½æ•°é‡Œé¢é‡æ–°æŒ‡å®šFATåˆ†åŒºï¼ˆä¹Ÿå°±æ˜¯ä¸Šé¢çš„åˆå§‹åŒ–æ“ä½œï¼‰ï¼Œä»¥ä¿è¯FATæ¨¡å—æ­£å¸¸ä½¿ç”¨ã€‚
 */
 static DSTATUS disk_status (BYTE drv);
 static DSTATUS disk_status (BYTE drv)
 {
-	if (disk_initialize(0))/*ÖØĞÂÖ¸¶¨Òª²Ù×÷µÄFAT·ÖÇø£¬Ğ´ÔÚÕâÀïÊ¹µÃÃ¿´Îµ÷ÓÃFATÄ£¿éÊ±¶¼Ö´ĞĞÒ»´Î*/
+	if (disk_initialize(0))/*é‡æ–°æŒ‡å®šè¦æ“ä½œçš„FATåˆ†åŒºï¼Œå†™åœ¨è¿™é‡Œä½¿å¾—æ¯æ¬¡è°ƒç”¨FATæ¨¡å—æ—¶éƒ½æ‰§è¡Œä¸€æ¬¡*/
 		return STA_NOINIT;
 
 	if (fs->id && fs->fs_type) return 0;
@@ -685,7 +692,7 @@ static DRESULT disk_write (
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
-/*×¢£ºÒòÎª³ÌĞòÄ¿Ç°²»ĞèÒªÊ¹ÓÃÕâĞ©¹¦ÄÜ£¬ËùÒÔÕâ¸öº¯ÊıÊÇÒ»¸ö¿Õº¯Êı£¬Ö±½Ó·µ»Ø¡£*/
+/*æ³¨ï¼šå› ä¸ºç¨‹åºç›®å‰ä¸éœ€è¦ä½¿ç”¨è¿™äº›åŠŸèƒ½ï¼Œæ‰€ä»¥è¿™ä¸ªå‡½æ•°æ˜¯ä¸€ä¸ªç©ºå‡½æ•°ï¼Œç›´æ¥è¿”å›ã€‚*/
 static DRESULT disk_ioctl (BYTE drv, BYTE ctrl,	void *buff);
 static DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0..) */
@@ -717,9 +724,9 @@ static DRESULT disk_ioctl (
 }
 
 /*
-	º¯ÊıÓÃÓÚÉèÖÃĞÂ½¨ÎÄ¼ş¡¢ÎÄ¼ş¼ĞÈÕÆÚÊ±¼ä£¬ÒòÎª²»ÖªÈçºÎ»ñÈ¡Ê±¼ä£¬ËùÒÔÊ¹ÓÃÁËÒ»¸ö¹Ì¶¨µÄÊ±¼ä£¬Ä¿Ç°ÊÇÊ¹ÓÃ³ÌĞò±àÒëµÄÊ±¼ä¡£
-	Èç¹ûÄãÖªµÀ²¢ÇÒÏëÊ¹ÓÃÏµÍ³Ê±¼ä¡£¿ÉÒÔ×Ô¼ºÌí¼Ó´úÂë½øÈ¥¡£
-	2010-06-24ÒÑÌí¼Ó»ñÈ¡µ±Ç°Ê±¼ä´úÂë.
+	å‡½æ•°ç”¨äºè®¾ç½®æ–°å»ºæ–‡ä»¶ã€æ–‡ä»¶å¤¹æ—¥æœŸæ—¶é—´ï¼Œå› ä¸ºä¸çŸ¥å¦‚ä½•è·å–æ—¶é—´ï¼Œæ‰€ä»¥ä½¿ç”¨äº†ä¸€ä¸ªå›ºå®šçš„æ—¶é—´ï¼Œç›®å‰æ˜¯ä½¿ç”¨ç¨‹åºç¼–è¯‘çš„æ—¶é—´ã€‚
+	å¦‚æœä½ çŸ¥é“å¹¶ä¸”æƒ³ä½¿ç”¨ç³»ç»Ÿæ—¶é—´ã€‚å¯ä»¥è‡ªå·±æ·»åŠ ä»£ç è¿›å»ã€‚
+	2010-06-24å·²æ·»åŠ è·å–å½“å‰æ—¶é—´ä»£ç .
 */
 static DWORD get_fattime (void);
 static DWORD get_fattime (void)
@@ -733,16 +740,44 @@ static void get_G4E_image(void)
 {
   grub_size_t i;
   
-  //ÔÚÄÚ´æ0-0x9ffff, ËÑË÷ÌØ¶¨×Ö·û´®"GRUB4EFI"£¬»ñµÃGRUB_IMGE
+  //åœ¨å†…å­˜0-0x9ffff, æœç´¢ç‰¹å®šå­—ç¬¦ä¸²"GRUB4EFI"ï¼Œè·å¾—GRUB_IMGE
 	for (i = 0x40100; i <= 0x9f100 ; i += 0x1000)
 	{
-    if (*(unsigned long long *)i == 0x4946453442555247)	//±È½ÏÊı¾İ
+    if (*(unsigned long long *)i == 0x4946453442555247)	//æ¯”è¾ƒæ•°æ®
     {
-      g4e_data = *(grub_size_t *)(i+16); //GRUB4DOS_for_UEFIÈë¿Ú
+      g4e_data = *(grub_size_t *)(i+16); //GRUB4DOS_for_UEFIå…¥å£
       return;
     }
 	}
   return;
 }
+
+#if _USE_LFN
+WCHAR ff_convert (WCHAR wch, UINT dir)
+{ 
+  if (wch < 0x80) {
+    /* ASCII Char */
+    return wch;
+  }
+
+  /* I don't support unicode it is too big! */
+  return 0;
+}
+
+WCHAR ff_wtoupper (WCHAR wch)
+{ 
+  if (wch < 0x80) {
+    /* ASCII Char */
+    if (wch >= 'a' && wch <= 'z') {
+      wch &= ~0x20;
+    }
+    return wch;
+  }
+
+  /* I don't support unicode it is too big! */
+  return 0;
+}
+#endif
+
 #include "ff.c"
 

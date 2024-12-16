@@ -2142,6 +2142,7 @@ FRESULT f_write (
 					clst = fp->org_clust;			/* Follow from the origin */
 					if (clst == 0)					/* When there is no cluster chain, */
 						fp->org_clust = clst = create_chain(fp->fs, 0);	/* Create a new cluster chain */
+					ext_data_1 = clust2sect(fp->fs, fp->org_clust); //导出新建文件的起始相对逻辑扇区  2024-11-07
 				} else {							/* Middle or end of the file */
 					clst = create_chain(fp->fs, fp->curr_clust);			/* Follow or stretch cluster chain */
 				}
@@ -3246,6 +3247,7 @@ FRESULT f_mkfs (
 		ST_DWORD(tbl+8, 63);			/* Partition start in LBA */
 		ST_DWORD(tbl+12, n_vol);		/* Partition size in LBA */
 		ST_WORD(tbl+64, 0xAA55);		/* Signature */
+		ST_DWORD(tbl-6, 0x11223344);  /*Disk Signature  2024-11-25*/
 		if (disk_write(drv, fs->win, 0, 1) != RES_OK)
 			return FR_DISK_ERR;
 		md = 0xF8;
@@ -3282,11 +3284,15 @@ FRESULT f_mkfs (
 		tbl[BS_BootSig32] = 0x29;				/* Extended boot signature */
 		mem_cpy(tbl+BS_VolLab32, "NO NAME    FAT32   ", 19);	/* Volume label, FAT signature */
 	} else {
+    if (fmt == FS_FAT12)  //完善BPB信息 2024-11-07
+      mem_cpy(tbl+BS_VolLab, "NO NAME    FAT12   ", 19);	/* Volume label, FAT signature */
+    else
+      mem_cpy(tbl+BS_VolLab, "NO NAME    FAT16   ", 19);	/* Volume label, FAT signature */
 		ST_DWORD(tbl+BS_VolID, n);				/* VSN */
 		ST_WORD(tbl+BPB_FATSz16, n_fat);		/* Number of sectors per FAT */
 		tbl[BS_DrvNum] = 0x80;					/* Drive number */
 		tbl[BS_BootSig] = 0x29;					/* Extended boot signature */
-		mem_cpy(tbl+BS_VolLab, "NO NAME    FAT     ", 19);	/* Volume label, FAT signature */
+//		mem_cpy(tbl+BS_VolLab, "NO NAME    FAT     ", 19);	/* Volume label, FAT signature */
 	}
 	ST_WORD(tbl+BS_55AA, 0xAA55);				/* Signature (Offset is fixed here regardless of sector size) */
 	if (disk_write(drv, tbl, b_vol, 1) != RES_OK)	/* Original (VBR) */
