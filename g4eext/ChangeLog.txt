@@ -1,4 +1,7 @@
 ﻿更新说明：
+2025-03-24 (yaya)
+  增加 gbk2uni，用于支持网起文件名含有中文及空格。例如：set gbk2uni=/efi/grub/ext/gbk2uni
+
 2024-12-16 (yaya)
   1. fat 支持长文件名(只限英文)。支持将镜象格式化为卷或者磁盘。
   2. ntboot 支持网起 wim。例：/efi/grub/ext/ntboot (http)/boot/imgs/boot.wim

@@ -29,6 +29,7 @@ all: prepare $(MODULES)
 
 	cat ntboot/ntboot >> bin/ntboot
 	cp -f ChangeLog.txt bin/
+	cp -f ntboot/gbk2uni bin/
 	zip -9 -j ../g4eext-$(DATE).zip bin/*
 
 %.o: %.c

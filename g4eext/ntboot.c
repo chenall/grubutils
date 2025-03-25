@@ -87,9 +87,9 @@ static int main(char *arg,int flags)
   if (! g4e_data)
     return 0;
 
-  if (*(unsigned int *)IMG(0x8278) < 20230714)
+  if (*(unsigned int *)IMG(0x8278) < 20250324)
   {
-    printf("Please use grub4efi version above 2023-07-14.\n");
+    printf("Please use grub4efi version above 2025-03-24.\n");
     return 0;
   }
   if (memcmp (arg, "--test", 6) == 0)		//测试  网起时，修改主机(服务器)的'/boot/bcd'
@@ -124,7 +124,10 @@ static int main(char *arg,int flags)
   if (current_drive == 0x21 && args.type != BOOT_WIM) //网起只允许wim格式
     goto load_fail;  //无效
   process_cmdline (arg);  //处理命令行参数
+  if (current_drive == 0x21)
+    goto abc;
   //处理字符串中的空格
+#if 0
   char *filename1 = temp;
   for (i = 0, j = 0; i < strlen (filename); i++,j++)
   {
@@ -138,7 +141,20 @@ static int main(char *arg,int flags)
   }
   filename1[j] = 0;  
   filename = filename1;
-
+#else
+  for (i = 0, j = 0; i < strlen (filename); i++,j++)
+  {
+    if (filename[i] == '\\' && filename[i+1] == ' ')
+    {
+      filename[j] = ' ';
+      i++;
+    }
+    else
+      filename[j] = filename[i];
+  }
+  filename[j] = 0;  
+#endif
+abc:
   if (!test)
   {
     int current_drive_back = current_drive;
@@ -167,7 +183,12 @@ static int main(char *arg,int flags)
   if (current_drive == 0x21)
   {
     //创建内存盘
-    sprintf(tmp,"cat --length=0 (tftp)%s",filename+6);        //确定wim文件尺寸
+    char *f;
+    if (filename[0] == '(')
+      f = filename + 6;
+    else if (filename[0] == '/')
+      f = filename;
+    sprintf(tmp,"cat --length=0 (tftp)%s",f);        //确定wim文件尺寸
     run_line (tmp,flags); 
 
     static efi_system_table_t *st;
@@ -192,14 +213,13 @@ static int main(char *arg,int flags)
     //格式化内存盘
     sprintf(tmp,"(hd-1,0)/fat mkfs /A:4096 mbr (rd)");
     run_line (tmp,flags);   
-
     //创建目录
-    run_line ("find --set-root /bcdvhd", flags);    //设置根
+    run_line ("find --set-root --devices=h /bcdvhd", flags);    //设置根
     run_line ("/fat mkdir (rd)/boot",flags);//81,ffff
     run_line ("/fat mkdir (rd)/efi",flags);
     run_line ("/fat mkdir (rd)/efi/boot",flags);
 
-    run_line ("/fat mkdir (rd)/efi/microsoft",flags);   //fat函数不能创建长文件名
+    run_line ("/fat mkdir (rd)/efi/microsoft",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot/fonts",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot/resources",flags);
@@ -244,25 +264,21 @@ static int main(char *arg,int flags)
     run_line (tmp,flags);
     bs->stall (10000); //延时10毫秒
 
-    //打开wim文件
-    int no_decompression_bak = no_decompression;
-    no_decompression = 1;
-    open (filename);        //确定wim文件尺寸
-    no_decompression = no_decompression_bak;
-    bs->stall (10000); //延时10毫秒
     //读wim文件
-    unsigned long long buf1;
     efi_pxe_buf = rd_base + (ext_data_1 << 9);
-    printf_debug ("efi_pxe_buf=%x, rd_base=%x, ext_data_1=x\n",efi_pxe_buf,rd_base,ext_data_1);
-    read (buf1, 0, GRUB_READ);
-    //延时50毫秒
+    printf_debug ("efi_pxe_buf=%x, rd_base=%x, ext_data_1=%x\n",efi_pxe_buf,rd_base,ext_data_1);
+    *(char *)IMG(0x8205) |= 0x80; //如果0x8205位7置1，使用efi_pxe_buf，不要分配内存
+    saved_drive = 0x21;
+    open (filename);        //读wim文件到efi_pxe_buf
+//    read (efi_pxe_buf, 0, GRUB_READ);
+    *(char *)IMG(0x8205) &= 0x7f; //恢复
     bs->stall (50000); //延时50毫秒
     //关闭wim文件
     close ();
     //正式创建虚拟硬盘
-    run_line ("map --no-alloc (rd)+1 (hd)",flags); 
+    run_line ("map --no-alloc (rd)+1 (hd)",flags);  
     //加载引导文件并启动
-    run_line ("chainloader (hd-1,0)/bootx64.efi",flags);
+    run_line ("chainloader (hd-1,0)/bootx64.efi",flags);  
     if (debug >= 3)
       getkey();
     run_line ("boot",flags);
