@@ -1,4 +1,8 @@
 ﻿更新说明：
+2025-05-10 (yaya)
+  增加ntboot命令行选项：设置具体图形分辨率。
+  如：gfxmode=800x600
+
 2025-03-24 (yaya)
   增加 gbk2uni，用于支持网起文件名含有中文及空格。例如：set gbk2uni=/efi/grub/ext/gbk2uni
 
@@ -19,8 +23,9 @@
   使用方法有所改变。
   1. 启动 Windows WIM/VHD
   title Boot Windows NT6+ vhd(PE)
-  find /boot/imgs/winpe.vhd | set bd=
-  /efi/grub/ext/ntboot  %bd%/boot/imgs/winpe.vhd winload=/Windows/System32/boot/winload.efi minint=1
+  find /efi/grub/ext/ntboot | set bd=
+  find --set-root /boot/imgs/winpe.vhd
+  %bd%/efi/grub/ext/ntboot  /boot/imgs/winpe.vhd winload=/Windows/System32/boot/winload.efi minint=1
   boot
 
   title Boot Windows NT6+ wim
