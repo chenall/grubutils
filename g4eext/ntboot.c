@@ -66,6 +66,21 @@ static reg_err_t reg_delete_key(hive_t *h, HKEY parent, HKEY key);
 static enum reg_bool validate_bins(const uint8_t *data, grub_size_t len);
 static grub_size_t wcslen (const wchar_t *str);
 struct nt_args *args;
+static int modify_bcd_name (char *bcdname, grub_uint64_t start_addr, int flags);
+
+//ntboot.img结构
+#define BCDSET_NAME_ADDR      0xa2060
+#define BCDSET_ADDR           0x432000
+#define BCDSET_LENG           0x6000
+#define BCDNET_NAME_ADDR      0xa2040
+#define BCDNET_ADDR           0x42a000
+#define BCDNET_LENG           0x3000
+#define BOOTWIM_NAME_ADDR     0xa20a0
+#define BOOTWIM_ADDR          0x5ca000
+#define BOOTWIM_CLUSTER       0xa7
+#define BOOTWIM_FAT           0x2000
+#define VDISK_CLUSTER_SIZE    0x8000
+#define VDISK_FAT_END_MARKER  0x0fffffff
 
 /* 这是必需的，请参阅grubprog.h中的注释 */
 #include <grubprog.h>
@@ -82,7 +97,7 @@ static int main(char *arg,int flags)
   if (! g4e_data)
     return 0;
 
-  if (*(unsigned int *)IMG(0x8278) < 20250210)
+  if (*(unsigned int *)IMG(0x8278) < 20250524)
   {
     printf("Please use grub4efi version above 2023-07-14.\n");
     return 0;
@@ -180,19 +195,24 @@ abc:
   {
     current_drive = saved_drive;
     current_partition = saved_partition;
-//    args->safeboot = SAFE_NETWORK;
-//    args->safemode = NTARG_BOOL_TRUE;
-
-    //创建内存盘
+    
+    //移动到'/'
+#if 0
     char *f;
     if (filename[0] == '(')
       f = filename + 6;
     else if (filename[0] == '/')
       f = filename;
-
+#else
+    char *f = filename;
+    while (f[0] != '/')
+      f++;
+#endif
+    //确定wim文件尺寸
     sprintf(tmp,"cat --length=0 (tftp)%s",f);        //确定wim文件尺寸
     run_line (tmp,flags); 
-
+    printf_debug("filename=%s, filesize=%x\n",filename,filesize);
+    //创建(rd)
     static efi_system_table_t *st;
     static efi_boot_services_t *bs;
     st = grub_efi_system_table;
@@ -200,7 +220,8 @@ abc:
     grub_efi_status_t status;
     status = bs->allocate_pages (EFI_ALLOCATE_ANY_PAGES,   
           EFI_RESERVED_MEMORY_TYPE,                        //保留内存类型        0
-          (grub_efi_uintn_t)((filesize + 0xc00000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
+ //         (grub_efi_uintn_t)((filesize + 0xc00000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
+          (grub_efi_uintn_t)((filesize + 0x5d0000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
     if (status != EFI_SUCCESS)	//如果失败
     {
       printf_errinfo ("out of map memory: %d\n",(int)status);
@@ -208,32 +229,34 @@ abc:
     }
 
     rd_base = efi_pxe_buf;
-    rd_size = (filesize + 0xc00000)&(-4096ULL);
+//    rd_size = (filesize + 0xc00000)&(-4096ULL);
+    rd_size = (filesize + 0x5d0000)&(-4096ULL);
     unsigned long long len = filesize;
-    memset ((void *)rd_base, 0, rd_size); 
-
-    //格式化内存盘
+    memset ((void *)rd_base, 0, rd_size); //清零
+    printf_debug("rd_base=%x, rd_size=%x\n",rd_base,rd_size);
+#if 0
+    //格式化(rd)
     sprintf(tmp,"(hd-1,0)/fat mkfs /A:4096 mbr (rd)");
     run_line (tmp,flags);
 
-    //创建目录
+    //在(rd)创建目录
     run_line ("find --set-root --devices=h /fat", flags);    //设置根
     run_line ("/fat mkdir (rd)/boot",flags);
     run_line ("/fat mkdir (rd)/efi",flags);
     run_line ("/fat mkdir (rd)/efi/boot",flags);
 
-    run_line ("/fat mkdir (rd)/efi/microsoft",flags);   //fat函数不能创建长文件名
+    run_line ("/fat mkdir (rd)/efi/microsoft",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot/fonts",flags);
     run_line ("/fat mkdir (rd)/efi/microsoft/boot/resources",flags);
 
-    //复制文件
+    //从(hd-1)复制文件到(rd)
     run_line ("cat --length=0 /bcdnet",flags);          //获取文件尺寸
     run_line ("/fat mkfile size=* (rd)/bcd",flags);     //创建文件信息,确定起始簇,分配簇.
     run_line ("/fat copy /o /bcdnet (rd)/bcd",flags);   //复制具体内容
-    args->bcd = (void *)(rd_base + (ext_data_1 << 9));  //bcd在内存地址
-    args->bcd_length = filesize;                        //bcd尺寸
-    printf_debug ("args->bcd=%x, rd_base=%x, ext_data_1=%x, args->bcd_length=%x\n",args->bcd,rd_base,ext_data_1,args->bcd_length);
+    args->bcd = (void *)(rd_base + (ext_data_1 << 9));  //获得bcd在内存地址
+    args->bcd_length = filesize;                        //获得bcd尺寸
+    printf_debug ("args->bcd=%x, ext_data_1=%x, args->bcd_length=%x\n",args->bcd,ext_data_1,args->bcd_length);
 
     run_line ("cat --length=0 /bootx64.efi",flags);
     run_line ("/fat mkfile size=* (rd)/bootx64.efi",flags);
@@ -265,16 +288,41 @@ abc:
     sprintf(tmp,"/fat mkfile size=0x%x (rd)/boot.wim",len);
     run_line (tmp,flags);
     bs->stall (10000); //延时10毫秒
+#endif
+    printf_debug("ext_data_0=%x\n",ext_data_0 << 9);
+    //复制hd到rd
+    memmove ((void *)rd_base, (const void *)(ext_data_0 << 9), 0x5d2200);
+    //修改bcd名称
+    modify_bcd_name ("bcdnet", rd_base, flags);
+    //修改boot.wim尺寸
+    *(uint64_t *)(rd_base + BOOTWIM_NAME_ADDR + 0x1c) = filesize;
+    //修改boot.wim的FAT
+    unsigned int i;
+    uint32_t *next = (uint32_t *)(rd_base + BOOTWIM_FAT);
+    uint32_t start = BOOTWIM_CLUSTER;
+    uint32_t end = start + (filesize + VDISK_CLUSTER_SIZE - 1)/VDISK_CLUSTER_SIZE;
+    printf_debug("next=%x, start=%x, end=%x\n",next,start,end);
+    //首先将每个簇标记为链接到下一个
+    for (i = start ; i < end ; i++)
+      next[i] = (i + 1);
+    //最后一簇结束标记
+    next[i] = VDISK_FAT_END_MARKER;
+    //修改mbr总扇区数
+    *(uint32_t *)(rd_base + 0x1ca) = (rd_size >> 9) - 1;
+    //修改pbr总扇区数
+    *(uint32_t *)(rd_base + 0x220) = (rd_size >> 9) - 1;
+    //修改备份pbr总扇区数
+    *(uint32_t *)(rd_base + 0xe20) = (rd_size >> 9) - 1;
 
     saved_drive = 0x21;
     saved_partition = 0xffffff;
     //读wim文件
-    unsigned long long buf1;
-    efi_pxe_buf = rd_base + (ext_data_1 << 9);
-    printf_debug ("efi_pxe_buf=%x, rd_base=%x, ext_data_1=%x, filename=%s\n",efi_pxe_buf,rd_base,ext_data_1,filename);//6cd16000,6c7b3000,2b18
-//    read (buf1, 0, GRUB_READ);
+//    efi_pxe_buf = rd_base + (ext_data_1 << 9);  //(rd)/boot.wim 地址
+    efi_pxe_buf = rd_base + BOOTWIM_ADDR;  //(rd)/boot.wim 地址
+    printf_debug ("efi_pxe_buf=%x\n",efi_pxe_buf);
+
     *(char *)IMG(0x8205) |= 0x80; //如果0x8205位7置1，使用efi_pxe_buf，不要分配内存
-    open (filename);        //读wim文件到efi_pxe_buf
+    open (filename);              //读wim文件到efi_pxe_buf
     *(char *)IMG(0x8205) &= 0x7f; //恢复
     bs->stall (50000); //延时50毫秒
 
@@ -296,7 +344,6 @@ abc:
   bcd_patch_data ();  //bcd修补程序数据
   if (debug >= 3)
     getkey();
-    
 
   if (!test)
   {
@@ -587,6 +634,29 @@ static void process_cmdline (char *arg)  //处理命令行参数
     else
       sprintf (args->winload, "%s", BCD_SHORT_WINLOAD);   //短字符串
   }
+
+}
+
+static int modify_bcd_name (char *bcdname, grub_uint64_t start_addr, int flags) //修改bcd名称，设置bcd磁盘信息及bcd位置/尺寸
+{
+  //重命名  bcdxxx -> bcd
+  //通过FAT32
+  char *short_name;
+  grub_uint64_t read_addr;
+
+  if (memcmp (bcdname, "bcdset", 6) == 0) //如果文件名相等
+    read_addr = start_addr + BCDSET_NAME_ADDR;
+  else
+    read_addr = start_addr + BCDNET_NAME_ADDR;
+
+  //修改短文件名
+  short_name = (char *)(grub_size_t)(read_addr);
+  short_name[3] = ' ';
+  short_name[4] = ' ';
+  short_name[5] = ' ';
+  printf_debug("read_addr=%x\n",read_addr);
+
+  return 1;
 }
 
 static int modify_bcd (char *filename, int flags) //修改bcd名称，设置bcd磁盘信息及bcd位置/尺寸
@@ -641,8 +711,9 @@ qwer:
     printf_debug("GPT: diskid_signature=%x, partition_signature=%x\n",
             *(unsigned long long *)&d->disk_signature,*(unsigned long long *)&p->partition_signature);
   }
+
   //安装虚拟磁盘
-  run_line ("find --set-root /fat", flags);    //设置根到(hd-1)
+  run_line ("find --set-root /bcdset", flags);    //设置根到(hd-1)
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
           current_drive, current_partition, saved_drive, saved_partition);
   status = vdisk_install (current_drive, current_partition);  //安装虚拟磁盘
@@ -652,20 +723,80 @@ qwer:
     return 0;
   }
 
-  //通过外部命令fat, 重命名  bcdxxx -> bcd
-  sprintf (temp,"/fat ren /bcdset bcd"); //外部命令，已打包
+//重命名  bcdxxx -> bcd
+#if 0
+#if 0 //通过外部命令fat
+  sprintf (temp,"/fat ren /%s bcd",bcdname); //外部命令，已打包
   run_line((char *)temp,1);
-  //确定bcd位置及尺寸
   sprintf(temp,"map --status=0x%x",current_drive);
   run_line(temp,1);
   run_line("blocklist /bcd",255);   //获得bcd在ntboot的偏移以及尺寸
-  args->bcd = (void *)((*(long long *)ADDR_RET_STR + (grub_size_t)map_start_sector[0]) << 9);  //(ntboot在内存的扇区起始+bcd相对于ntboot的扇区偏移)转字节
+  args->bcd = (*(long long *)ADDR_RET_STR + (grub_size_t)map_start_sector[0]) << 9;  //(ntboot在内存的扇区起始+bcd相对于ntboot的扇区偏移)转字节
   args->bcd_length = filemax;   //(bcd扇区尺寸)转字节
+#else //通过FAT12/16文件结构
+  grub_size_t i; 
+  char *short_name, *long_name;
+  grub_uint32_t file_len, file_off;
+  grub_uint64_t read_addr;
+  printf_debug("start_sector=%x, partition_start=%x\n",
+          d->start_sector,p->partition_start);
+  start_addr ^= start_addr; //清零
+  start_addr = (d->start_sector + p->partition_start) << 9; //BCD 所在卷在内存的基地址字节
+  char *addr = (char *)start_addr;            //BCD 所在卷基地址字节指针
+  read_addr = start_addr + ((*(grub_uint16_t *)(addr + 0xe) + ((*(grub_uint16_t *)(addr + 0x16)) << 1)) << 9); //FAT16主目录字节地址
+  char *dir = (char *)read_addr;  //目录指针
 
-  printf_debug("bcd=%x, bcd_length=%x\n",
-          args->bcd, args->bcd_length);
+  for (i = 0; i < 0x200; i += 0x20, dir += 0x20)
+  {
+    if (dir[0] == 0xe5 || dir[0] == 0)  //已删除或空项目
+      continue;
+
+    if (memcmp (dir, bcdname, strlen(bcdname)) == 0) //如果文件名相等
+    {
+      file_off = ((*(grub_uint16_t *)&dir[0x1a] - 2) * (*(grub_uint8_t *)&addr[0xd])  //(文件簇号－2)×每簇扇区数
+          /*+ (read_addr >> 9)*/                                                      //主目录表起始相对逻辑扇区
+          + ((*(grub_uint16_t *)&addr[0x11]) >> 4))                                   //0x20×主目录表文件数÷每扇区字节数
+          << 9;                                  //文件起始在卷的字节偏移  88add  1115ba00
+      file_len = *(grub_uint32_t *)&dir[0x1c];   //文件字节尺寸
+      break;
+    }
+  }
+  printf_debug("i=%x\n",i);
+  if (i >= 0x200)
+    return 0; 
+
+  //修改短文件名
+  short_name = (char *)(grub_size_t)(i+read_addr);
+  short_name[3] = ' ';
+  short_name[4] = ' ';
+  short_name[5] = ' ';
+  //修改长文件名
+  long_name = short_name - 32;
+  if (long_name[11] == 0x0f)
+  {
+    long_name[7] = 0;
+    long_name[9] = 0xff;
+    long_name[10] = 0xff;
+    long_name[14] = 0xff;
+    long_name[15] = 0xff;
+    long_name[16] = 0xff;
+    long_name[17] = 0xff;
+    long_name[13] = 0x6e;
+  } 
+
+  args->bcd = read_addr + file_off;
+  args->bcd_length = file_len;
+#endif
+#endif
+  //重命名  bcdset -> bcd
+  modify_bcd_name ("bcdset", ext_data_0 << 9, flags);
+  
+  args->bcd = (void *)((ext_data_0 << 9) + BCDSET_ADDR);
+  args->bcd_length = BCDSET_LENG;
+  printf_debug("bcd=%x, bcd_length=%x\n",args->bcd, args->bcd_length);
   printf_debug("current_drive=%x, current_partition=%x, saved_drive=%x, saved_partition=%x\n",
-          current_drive, current_partition, saved_drive, saved_partition);
+      current_drive, current_partition, saved_drive, saved_partition);
+
   if (debug >= 3)
     run_line("pause", 1);
   return 1;
