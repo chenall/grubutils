@@ -97,7 +97,7 @@ static int main(char *arg,int flags)
   if (! g4e_data)
     return 0;
 
-  if (*(unsigned int *)IMG(0x8278) < 20250524)
+  if (*(unsigned int *)IMG(0x8278) < 20250914)
   {
     printf("Please use grub4efi version above 2023-07-14.\n");
     return 0;
@@ -209,8 +209,12 @@ abc:
       f++;
 #endif
     //确定wim文件尺寸
-    sprintf(tmp,"cat --length=0 (tftp)%s",f);        //确定wim文件尺寸
-    run_line (tmp,flags); 
+//    sprintf(tmp,"cat --length=0 (tftp)%s",f);        //确定wim文件尺寸
+//    run_line (tmp,flags); 
+    no_decompression = 1; //无减压 执行打开命令，不探测压缩文件，即不产生读行为。
+    open (filename);
+    no_decompression = 0; //恢复
+    filesize = filemax;
     printf_debug("filename=%s, filesize=%x\n",filename,filesize);
     //创建(rd)
     static efi_system_table_t *st;
@@ -220,7 +224,6 @@ abc:
     grub_efi_status_t status;
     status = bs->allocate_pages (EFI_ALLOCATE_ANY_PAGES,   
           EFI_RESERVED_MEMORY_TYPE,                        //保留内存类型        0
- //         (grub_efi_uintn_t)((filesize + 0xc00000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
           (grub_efi_uintn_t)((filesize + 0x5d0000)&(-4096ULL)) >> 12, (unsigned long long *)(grub_size_t)&efi_pxe_buf);	//调用(分配页面,分配类型->任意页面,存储类型->运行时服务数据(6),分配页,地址)  
     if (status != EFI_SUCCESS)	//如果失败
     {
@@ -229,68 +232,11 @@ abc:
     }
 
     rd_base = efi_pxe_buf;
-//    rd_size = (filesize + 0xc00000)&(-4096ULL);
     rd_size = (filesize + 0x5d0000)&(-4096ULL);
-    unsigned long long len = filesize;
     memset ((void *)rd_base, 0, rd_size); //清零
     printf_debug("rd_base=%x, rd_size=%x\n",rd_base,rd_size);
-#if 0
-    //格式化(rd)
-    sprintf(tmp,"(hd-1,0)/fat mkfs /A:4096 mbr (rd)");
-    run_line (tmp,flags);
-
-    //在(rd)创建目录
-    run_line ("find --set-root --devices=h /fat", flags);    //设置根
-    run_line ("/fat mkdir (rd)/boot",flags);
-    run_line ("/fat mkdir (rd)/efi",flags);
-    run_line ("/fat mkdir (rd)/efi/boot",flags);
-
-    run_line ("/fat mkdir (rd)/efi/microsoft",flags);
-    run_line ("/fat mkdir (rd)/efi/microsoft/boot",flags);
-    run_line ("/fat mkdir (rd)/efi/microsoft/boot/fonts",flags);
-    run_line ("/fat mkdir (rd)/efi/microsoft/boot/resources",flags);
-
-    //从(hd-1)复制文件到(rd)
-    run_line ("cat --length=0 /bcdnet",flags);          //获取文件尺寸
-    run_line ("/fat mkfile size=* (rd)/bcd",flags);     //创建文件信息,确定起始簇,分配簇.
-    run_line ("/fat copy /o /bcdnet (rd)/bcd",flags);   //复制具体内容
-    args->bcd = (void *)(rd_base + (ext_data_1 << 9));  //获得bcd在内存地址
-    args->bcd_length = filesize;                        //获得bcd尺寸
-    printf_debug ("args->bcd=%x, ext_data_1=%x, args->bcd_length=%x\n",args->bcd,ext_data_1,args->bcd_length);
-
-    run_line ("cat --length=0 /bootx64.efi",flags);
-    run_line ("/fat mkfile size=* (rd)/bootx64.efi",flags);
-    run_line ("/fat copy /o /bootx64.efi (rd)/bootx64.efi",flags);
-
-    run_line ("cat --length=0 /boot/boot.sdi",flags);
-    run_line ("/fat mkfile size=* (rd)/boot/boot.sdi",flags);
-    run_line ("/fat copy /o /boot/boot.sdi (rd)/boot/boot.sdi",flags);
-
-    run_line ("/fat mkfile size=0 (rd)/efi/boot/bootx64.efi",flags);
-    run_line ("/fat copy /o /efi/boot/bootx64.efi (rd)/efi/boot/bootx64.efi",flags);
-
-    run_line ("cat --length=0 /efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
-    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
-    run_line ("/fat copy /o /efi/microsoft/boot/fonts/wgl4_boot.ttf (rd)/efi/microsoft/boot/fonts/wgl4_boot.ttf",flags);
-
-    run_line ("cat --length=0 /efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
-    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
-    run_line ("/fat copy /o /efi/microsoft/boot/fonts/segoe_slboot.ttf (rd)/efi/microsoft/boot/fonts/segoe_slboot.ttf",flags);
-
-    run_line ("cat --length=0 /efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
-    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
-    run_line ("/fat copy /o /efi/microsoft/boot/fonts/segmono_boot.ttf (rd)/efi/microsoft/boot/fonts/segmono_boot.ttf",flags);
-
-    run_line ("cat --length=0 /efi/microsoft/boot/resources/bootres.dll",flags);
-    run_line ("/fat mkfile size=* (rd)/efi/microsoft/boot/resources/bootres.dll",flags);
-    run_line ("/fat copy /o /efi/microsoft/boot/resources/bootres.dll (rd)/efi/microsoft/boot/resources/bootres.dll",flags);
-
-    sprintf(tmp,"/fat mkfile size=0x%x (rd)/boot.wim",len);
-    run_line (tmp,flags);
-    bs->stall (10000); //延时10毫秒
-#endif
-    printf_debug("ext_data_0=%x\n",ext_data_0 << 9);
     //复制hd到rd
+    printf_debug("ext_data_0=%x\n",ext_data_0 << 9);
     memmove ((void *)rd_base, (const void *)(ext_data_0 << 9), 0x5d2200);
     //修改bcd名称
     modify_bcd_name ("bcdnet", rd_base, flags);
@@ -317,12 +263,16 @@ abc:
     saved_drive = 0x21;
     saved_partition = 0xffffff;
     //读wim文件
-//    efi_pxe_buf = rd_base + (ext_data_1 << 9);  //(rd)/boot.wim 地址
     efi_pxe_buf = rd_base + BOOTWIM_ADDR;  //(rd)/boot.wim 地址
     printf_debug ("efi_pxe_buf=%x\n",efi_pxe_buf);
 
     *(char *)IMG(0x8205) |= 0x80; //如果0x8205位7置1，使用efi_pxe_buf，不要分配内存
-    open (filename);              //读wim文件到efi_pxe_buf
+//    if (!open (filename))    //读wim文件到efi_pxe_buf
+    if (!read (efi_pxe_buf,filesize,GRUB_READ))    //读wim文件到efi_pxe_buf
+    {
+      bs->free_pages ((unsigned long long)(grub_size_t)&efi_pxe_buf,(grub_efi_uintn_t)((filesize + 0x5d0000)&(-4096ULL)) >> 12);
+      return 0;
+    }
     *(char *)IMG(0x8205) &= 0x7f; //恢复
     bs->stall (50000); //延时50毫秒
 
