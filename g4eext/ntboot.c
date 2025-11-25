@@ -1286,8 +1286,10 @@ bcd_patch_data (void)  //修补数据
 
 enum reg_bool
 {
-    false = 0,
-    true  = 1,
+//    false = 0,
+//    true  = 1,
+    false_0 = 0,  //注意：'false' 是从 '-std=c23' 开始的保留关键字,不能将关键字“false”用作枚举常量。否则gcc-15编译失败。
+    true_1  = 1,  //注意：'true' 是从 '-std=c23' 开始的保留关键字,不能将关键字“true”用作枚举常量。否则gcc-15编译失败。
 };
 
 static int32_t
