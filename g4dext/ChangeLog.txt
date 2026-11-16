@@ -1,4 +1,8 @@
 ﻿更新说明：
+2026-11-16 (yaya)
+  增加批处理Install_g4d.rar，用于windows环境安装引导代码。
+  数据无价，请使用前做好备份。
+
 2023-03-28 (yaya)
   增加外部定时器应用：进度条(ProgressBar)。
   使用方式：ProgressBar [--no-box] 左上角x 左上角y x尺寸 y尺寸 颜色 模式
